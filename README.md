@@ -34,9 +34,9 @@
 
 ```text
 IELTS_tracker/
-├── index.html      # Cấu trúc trang (markup)
-├── style.css       # Toàn bộ style giao diện
-├── script.js       # Toàn bộ logic ứng dụng (render, state, lưu trữ)
+├── original.html       # Cấu trúc trang (markup)
+├── style.css           # Toàn bộ style giao diện
+├── script.js           # Toàn bộ logic ứng dụng (render, state, lưu trữ)
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -89,9 +89,9 @@ Dự án được thực hiện phục vụ mục đích học tập cá nhân, 
 
 ```text
 IELTS_tracker/
-├── index.html      # Page structure (markup)
-├── style.css       # All interface styles
-├── script.js       # All application logic (rendering, state, storage)
+├── original.html       # Page structure (markup)
+├── style.css           # All interface styles
+├── script.js           # All application logic (rendering, state, storage)
 ├── .gitignore
 ├── LICENSE
 └── README.md
