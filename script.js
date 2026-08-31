@@ -5,8 +5,28 @@ const SKILLS = [
   { key: 'speaking', label: 'Speaking', baseline: 6.0, target: 7.0, color: '#6B54CC' },
 ];
 
-const OVERALL_TARGET = Math.round((SKILLS.reduce((a, s) => a + s.target, 0) / SKILLS.length) * 2) / 2;
-const OVERALL_BASELINE = Math.round((SKILLS.reduce((a, s) => a + s.baseline, 0) / SKILLS.length) * 2) / 2;
+const SKILLS_CONFIG_KEY = 'ielts-tracker-skills-config';
+function loadSkillsConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SKILLS_CONFIG_KEY) || 'null');
+    if (!saved) return;
+    SKILLS.forEach((s) => {
+      const cfg = saved[s.key];
+      if (!cfg) return;
+      if (typeof cfg.baseline === 'number' && !isNaN(cfg.baseline)) s.baseline = cfg.baseline;
+      if (typeof cfg.target === 'number' && !isNaN(cfg.target)) s.target = cfg.target;
+    });
+  } catch (e) { /* ignore malformed config */ }
+}
+loadSkillsConfig();
+
+let OVERALL_TARGET;
+let OVERALL_BASELINE;
+function recomputeOverallTargets() {
+  OVERALL_TARGET = Math.round((SKILLS.reduce((a, s) => a + s.target, 0) / SKILLS.length) * 2) / 2;
+  OVERALL_BASELINE = Math.round((SKILLS.reduce((a, s) => a + s.baseline, 0) / SKILLS.length) * 2) / 2;
+}
+recomputeOverallTargets();
 
 const RAW_SCORE_SKILLS = ['listening', 'reading'];
 
@@ -150,6 +170,22 @@ const WEEK_LABELS = {
   3: 'Mock test cường độ cao, khóa lỗi trọng điểm',
   4: 'Dồn lực tối đa, mô phỏng áp lực thi thật',
 };
+
+const WEEK_LABELS_KEY = 'ielts-tracker-week-labels';
+let weekLabelsOverride = {};
+try { weekLabelsOverride = JSON.parse(localStorage.getItem(WEEK_LABELS_KEY) || '{}'); } catch (e) { weekLabelsOverride = {}; }
+
+function getWeekLabel(w) {
+  const v = weekLabelsOverride[w];
+  return (v !== undefined && v !== null && v !== '') ? v : WEEK_LABELS[w];
+}
+
+function saveWeekLabel(w, text) {
+  const trimmed = (text || '').trim();
+  if (trimmed && trimmed !== WEEK_LABELS[w]) weekLabelsOverride[w] = trimmed;
+  else delete weekLabelsOverride[w];
+  try { localStorage.setItem(WEEK_LABELS_KEY, JSON.stringify(weekLabelsOverride)); } catch (e) { /* ignore */ }
+}
 
 const PLAN = [
   { week: 1, day: 1, isTest: true, title: 'Full mock test — Xác lập baseline',
@@ -782,7 +818,7 @@ function save() {
 }
 
 function escapeHtml(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function autoResize(el) {
@@ -963,7 +999,7 @@ function practicecChartData() {
 function renderHeader() {
   const completedCount = Object.values(entries).filter((e) => e && e.completed).length;
   document.getElementById('header-sub').textContent =
-    'Overall 6.0 → 8.0 trong 1 tháng · ' + completedCount + '/28 ngày đã đánh dấu hoàn thành';
+    'Overall ' + OVERALL_BASELINE.toFixed(1) + ' → ' + OVERALL_TARGET.toFixed(1) + ' trong 1 tháng · ' + completedCount + '/28 ngày đã đánh dấu hoàn thành';
 }
 
 function renderStats() {
@@ -983,6 +1019,19 @@ function renderStats() {
     + '<span class="stat-target">/ ' + OVERALL_TARGET.toFixed(1) + '</span></div>'
     + '</div>';
   grid.innerHTML = html;
+}
+
+function renderSettingsFields() {
+  const container = document.getElementById('settings-fields');
+  if (!container) return;
+  const html = SKILLS.map((s) => (
+    '<div class="settings-row">'
+      + '<div class="settings-skill-label" style="color:' + s.color + '">' + s.label + '</div>'
+      + '<label class="settings-field">Hiện tại<input type="number" step="0.5" min="0" max="9" class="settings-input" data-skill="' + s.key + '" data-field="baseline" value="' + s.baseline + '" /></label>'
+      + '<label class="settings-field">Mục tiêu<input type="number" step="0.5" min="0" max="9" class="settings-input" data-skill="' + s.key + '" data-field="target" value="' + s.target + '" /></label>'
+    + '</div>'
+  )).join('');
+  container.innerHTML = html;
 }
 
 function aggregateSkillAverages(kind) {
@@ -1214,10 +1263,12 @@ function renderMainTabs() {
   weekContent.style.display = !isCategoryTab ? '' : 'none';
 
   if (isCategoryTab) {
-    caption.textContent = '';
+    caption.innerHTML = '';
   } else {
     activeWeek = mainTab;
-    caption.textContent = WEEK_LABELS[activeWeek];
+    caption.innerHTML = '<span class="week-label-wrap" data-week="' + activeWeek + '">'
+      + '<span class="week-label-text" data-action="edit-week-label" data-week="' + activeWeek + '">'
+      + escapeHtml(getWeekLabel(activeWeek)) + ' <span class="edit-icon">✎</span></span></span>';
   }
 }
 
@@ -1244,12 +1295,14 @@ function renderDayList() {
     const done = !!e.completed;
     const isLast = idx === days.length - 1;
     const descContent = e.desc !== undefined ? e.desc : d.desc;
+    const titleContent = e.title !== undefined ? e.title : d.title;
     const bandFields = SKILLS.map((s) => bandFieldHtml(s, e, 'data-day="' + d.day + '"', '')).join('');
     return '<div class="day-row">'
       + (!isLast ? '<div class="day-line"></div>' : '')
       + '<div class="day-badge' + (done ? ' done' : '') + '">' + (done ? '✓' : d.day) + '</div>'
       + '<div class="day-card" id="day-content-' + d.day + '">'
-      + '<div class="day-title-row"><span class="day-title">' + d.title + '</span>'
+      + '<div class="day-title-row"><span class="day-title-wrap" data-day="' + d.day + '">'
+      + '<span class="day-title" data-action="edit-day-title" data-day="' + d.day + '">' + escapeHtml(titleContent) + '</span></span>'
       + (d.isTest ? '<span class="test-badge">TEST</span>' : '') + '</div>'
       + '<div class="day-desc-wrap" data-day="' + d.day + '">'
       + '<div class="day-desc" data-action="edit-day-desc" data-day="' + d.day + '">' + descContent + '</div>'
@@ -1260,6 +1313,11 @@ function renderDayList() {
       + '</div></div>';
   }).join('');
   document.getElementById('day-list').innerHTML = html;
+}
+
+function dayTitleEditorHtml(day, content) {
+  return '<input type="text" class="day-title-input" value="' + escapeHtml(content) + '" />'
+    + '<button type="button" class="day-desc-save-btn" data-action="save-day-title" data-day="' + day + '">Lưu</button>';
 }
 
 function dayDescEditorHtml(day, content) {
@@ -1816,6 +1874,86 @@ document.addEventListener('click', (ev) => {
     entries[day].desc = newContent;
     save();
     wrap.innerHTML = '<div class="day-desc" data-action="edit-day-desc" data-day="' + day + '">' + newContent + '</div>';
+  } else if (t.dataset.action === 'edit-day-title') {
+    const day = t.dataset.day;
+    const wrap = t.closest('.day-title-wrap');
+    if (!wrap) return;
+    const e = entries[day] || {};
+    const planDay = PLAN.find((d) => String(d.day) === String(day));
+    const content = e.title !== undefined ? e.title : (planDay ? planDay.title : '');
+    wrap.innerHTML = dayTitleEditorHtml(day, content);
+    const input = wrap.querySelector('.day-title-input');
+    if (input) { input.focus(); input.select(); }
+  } else if (t.dataset.action === 'save-day-title') {
+    const day = t.dataset.day;
+    const wrap = t.closest('.day-title-wrap');
+    if (!wrap) return;
+    const input = wrap.querySelector('.day-title-input');
+    const planDay = PLAN.find((d) => String(d.day) === String(day));
+    const fallback = planDay ? planDay.title : '';
+    const newVal = (input && input.value.trim()) || fallback;
+    entries[day] = entries[day] || {};
+    entries[day].title = newVal;
+    save();
+    wrap.innerHTML = '<span class="day-title" data-action="edit-day-title" data-day="' + day + '">' + escapeHtml(newVal) + '</span>';
+  } else if (t.dataset.action === 'edit-week-label') {
+    const week = t.dataset.week;
+    const wrap = t.closest('.week-label-wrap');
+    if (!wrap) return;
+    const current = getWeekLabel(week);
+    wrap.innerHTML = '<input type="text" class="week-label-input" value="' + escapeHtml(current) + '" />'
+      + '<button type="button" class="day-desc-save-btn" data-action="save-week-label" data-week="' + week + '">Lưu</button>';
+    const input = wrap.querySelector('.week-label-input');
+    if (input) { input.focus(); input.select(); }
+  } else if (t.dataset.action === 'save-week-label') {
+    const week = t.dataset.week;
+    const wrap = t.closest('.week-label-wrap');
+    if (!wrap) return;
+    const input = wrap.querySelector('.week-label-input');
+    const newVal = input ? input.value.trim() : '';
+    saveWeekLabel(week, newVal);
+    wrap.innerHTML = '<span class="week-label-text" data-action="edit-week-label" data-week="' + week + '">'
+      + escapeHtml(getWeekLabel(week)) + ' <span class="edit-icon">✎</span></span>';
+  } else if (t.dataset.action === 'open-settings') {
+    renderSettingsFields();
+    const modal = document.getElementById('settings-modal');
+    if (modal) modal.style.display = 'flex';
+  } else if (t.dataset.action === 'close-settings') {
+    const modal = document.getElementById('settings-modal');
+    if (modal) modal.style.display = 'none';
+  } else if (t.dataset.action === 'save-settings') {
+    const inputs = document.querySelectorAll('#settings-fields .settings-input');
+    const config = {};
+    inputs.forEach((inp) => {
+      const key = inp.dataset.skill;
+      const field = inp.dataset.field;
+      let val = parseFloat(inp.value);
+      if (isNaN(val)) return;
+      val = Math.round(val * 2) / 2;
+      if (val < 0) val = 0;
+      if (val > 9) val = 9;
+      if (!config[key]) config[key] = {};
+      config[key][field] = val;
+    });
+    SKILLS.forEach((s) => {
+      if (config[s.key]) {
+        if (typeof config[s.key].baseline === 'number') s.baseline = config[s.key].baseline;
+        if (typeof config[s.key].target === 'number') s.target = config[s.key].target;
+      }
+    });
+    try { localStorage.setItem(SKILLS_CONFIG_KEY, JSON.stringify(config)); } catch (e) { /* ignore */ }
+    recomputeOverallTargets();
+    const modal = document.getElementById('settings-modal');
+    if (modal) modal.style.display = 'none';
+    renderAll();
+  } else if (t.dataset.action === 'reset-settings') {
+    if (!confirm('Đặt lại band hiện tại/mục tiêu về mặc định?')) return;
+    try { localStorage.removeItem(SKILLS_CONFIG_KEY); } catch (e) { /* ignore */ }
+    const defaults = { listening: { baseline: 6.5, target: 8.5 }, reading: { baseline: 5.5, target: 8.5 }, writing: { baseline: 5.5, target: 7.5 }, speaking: { baseline: 6.0, target: 7.0 } };
+    SKILLS.forEach((s) => { s.baseline = defaults[s.key].baseline; s.target = defaults[s.key].target; });
+    recomputeOverallTargets();
+    renderSettingsFields();
+    renderAll();
   } else if (t.dataset.action === 'scroll-to-test') {
     const target = document.getElementById(t.dataset.target);
     if (target) {
@@ -1871,6 +2009,15 @@ document.addEventListener('paste', (ev) => {
   ev.preventDefault();
   const text = (ev.clipboardData || window.clipboardData).getData('text/plain');
   document.execCommand('insertText', false, text);
+});
+
+document.addEventListener('keydown', (ev) => {
+  if (!ev.target.classList) return;
+  const isQuickInput = ev.target.classList.contains('day-title-input') || ev.target.classList.contains('week-label-input');
+  if (!isQuickInput || ev.key !== 'Enter') return;
+  ev.preventDefault();
+  const btn = ev.target.parentElement ? ev.target.parentElement.querySelector('[data-action^="save-"]') : null;
+  if (btn) btn.click();
 });
 
 renderAll();

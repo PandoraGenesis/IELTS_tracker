@@ -128,3 +128,33 @@ h1{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; margin:4px 0 
 .reset-row button{ background:none; border:none; color:var(--ink-muted); font-size:12px; text-decoration:underline; cursor:pointer; }
 .storage-note{ text-align:center; color:var(--ink-muted); font-size:11px; margin-top:6px; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button{ opacity:.5; }
+
+/* --- Tùy chỉnh: nút cài đặt, modal, sửa tên tuần/tiêu đề ngày --- */
+.settings-btn{ position:absolute; top:0; right:0; padding:7px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--accent); font-size:12px; font-weight:500; cursor:pointer; box-shadow:0 1px 3px rgba(22,35,61,.05); }
+.settings-btn:hover{ background:var(--inset); }
+.customize-hint{ color:var(--ink-muted); font-size:12px; margin:4px 0 0; }
+@media(max-width:640px){ .settings-btn{ position:static; display:inline-block; margin-bottom:10px; } }
+
+.modal-overlay{ position:fixed; inset:0; background:rgba(22,35,61,.45); display:flex; align-items:center; justify-content:center; padding:16px; z-index:50; }
+.modal-card{ background:var(--surface); border-radius:12px; padding:20px; max-width:420px; width:100%; box-shadow:0 8px 24px rgba(22,35,61,.2); }
+.modal-title{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; margin-bottom:6px; }
+.modal-note{ color:var(--ink-muted); font-size:12px; line-height:1.5; margin:0 0 14px; }
+.settings-row{ display:grid; grid-template-columns:80px 1fr 1fr; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
+.settings-row:last-child{ border-bottom:none; }
+.settings-skill-label{ font-size:13px; font-weight:600; }
+.settings-field{ display:flex; flex-direction:column; gap:3px; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-muted); }
+.settings-field input{ font-family:'JetBrains Mono',monospace; font-size:13px; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--inset); color:var(--ink); text-transform:none; letter-spacing:normal; }
+.settings-field input:focus{ border-color:var(--accent); outline:none; }
+.modal-actions{ display:flex; align-items:center; gap:8px; margin-top:16px; }
+.modal-btn-reset{ background:none; border:none; color:var(--ink-muted); font-size:12px; text-decoration:underline; cursor:pointer; padding:0; }
+.modal-btn-cancel{ padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--ink-muted); font-size:13px; cursor:pointer; }
+.modal-btn-save{ padding:8px 14px; border-radius:8px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-size:13px; font-weight:500; cursor:pointer; }
+
+.day-title-wrap, .week-label-wrap{ display:inline-flex; align-items:center; gap:6px; }
+.day-title{ cursor:pointer; border-radius:6px; padding:2px 4px; margin:-2px -4px; transition:background .15s ease; }
+.day-title:hover{ background:var(--inset); }
+.week-label-text{ cursor:pointer; border-radius:6px; padding:2px 4px; margin:-2px -4px; transition:background .15s ease; }
+.week-label-text:hover{ background:var(--inset); }
+.edit-icon{ font-size:11px; opacity:.5; }
+.day-title-input{ font-family:'Fraunces',serif; font-weight:600; font-size:15px; padding:4px 6px; border-radius:6px; border:1px solid var(--accent); background:var(--inset); color:var(--ink); min-width:180px; }
+.week-label-input{ font-size:13px; padding:4px 6px; border-radius:6px; border:1px solid var(--accent); background:var(--inset); color:var(--ink); min-width:220px; }

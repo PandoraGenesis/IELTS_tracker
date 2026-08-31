@@ -9,10 +9,26 @@
 </head>
 <body>
 <div class="wrap">
-  <div style="text-align:center;">
+  <div style="text-align:center; position:relative;">
+    <button type="button" class="settings-btn" data-action="open-settings" title="Tùy chỉnh band hiện tại & mục tiêu">⚙ Tùy chỉnh mục tiêu</button>
     <div class="eyebrow">Logbook · 28 ngày</div>
     <h1>Nhật ký bứt phá IELTS</h1>
     <p class="sub" id="header-sub">Overall 6.0 → 8.0 trong 1 tháng</p>
+    <p class="customize-hint">Bấm vào tên tuần hoặc tiêu đề từng ngày để đổi nội dung theo lộ trình của riêng bạn.</p>
+  </div>
+
+  <div id="settings-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title">Tùy chỉnh band hiện tại &amp; mục tiêu</div>
+      <p class="modal-note">Chỉnh số theo tình hình thực tế của bạn — toàn bộ thẻ điểm, biểu đồ và mục tiêu Overall sẽ tự cập nhật theo.</p>
+      <div id="settings-fields"></div>
+      <div class="modal-actions">
+        <button type="button" class="modal-btn-reset" data-action="reset-settings">Đặt lại mặc định</button>
+        <div style="flex:1;"></div>
+        <button type="button" class="modal-btn-cancel" data-action="close-settings">Hủy</button>
+        <button type="button" class="modal-btn-save" data-action="save-settings">Lưu</button>
+      </div>
+    </div>
   </div>
 
   <div class="section-label">Tiến độ hiện tại</div>
