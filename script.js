@@ -1,8 +1,8 @@
 const SKILLS = [
-  { key: 'listening', label: 'Listening', baseline: 6.5, target: 8.5, color: '#0E9488' },
-  { key: 'reading', label: 'Reading', baseline: 5.5, target: 8.5, color: '#C08A12' },
-  { key: 'writing', label: 'Writing', baseline: 5.5, target: 7.5, color: '#C13F68' },
-  { key: 'speaking', label: 'Speaking', baseline: 6.0, target: 7.0, color: '#6B54CC' },
+  { key: 'listening', label: 'Listening', baseline: 0, target: 0, color: '#0E9488' },
+  { key: 'reading', label: 'Reading', baseline: 0, target: 0, color: '#C08A12' },
+  { key: 'writing', label: 'Writing', baseline: 0, target: 0, color: '#C13F68' },
+  { key: 'speaking', label: 'Speaking', baseline: 0, target: 0, color: '#6B54CC' },
 ];
 
 const SKILLS_CONFIG_KEY = 'ielts-tracker-skills-config';
@@ -27,6 +27,35 @@ function recomputeOverallTargets() {
   OVERALL_BASELINE = Math.round((SKILLS.reduce((a, s) => a + s.baseline, 0) / SKILLS.length) * 2) / 2;
 }
 recomputeOverallTargets();
+
+const TOTAL_DAYS_KEY = 'ielts-tracker-total-days';
+let TOTAL_DAYS = 28;
+try {
+  const savedDays = parseInt(localStorage.getItem(TOTAL_DAYS_KEY), 10);
+  if (!isNaN(savedDays) && savedDays >= 1 && savedDays <= 365) TOTAL_DAYS = savedDays;
+} catch (e) { /* ignore */ }
+let WEEKS_COUNT;
+function recomputeWeeksCount() {
+  WEEKS_COUNT = Math.ceil(TOTAL_DAYS / 7);
+}
+recomputeWeeksCount();
+
+function buildPlan() {
+  const plan = [];
+  for (let day = 1; day <= TOTAL_DAYS; day++) {
+    const week = Math.ceil(day / 7);
+    plan.push({ week: week, day: day, isTest: false, title: '', desc: '' });
+  }
+  return plan;
+}
+
+function weekXTicks() {
+  const ticks = [0];
+  const step = Math.max(1, Math.ceil(TOTAL_DAYS / 4));
+  for (let t = step; t < TOTAL_DAYS; t += step) ticks.push(t);
+  if (ticks[ticks.length - 1] !== TOTAL_DAYS) ticks.push(TOTAL_DAYS);
+  return ticks;
+}
 
 const RAW_SCORE_SKILLS = ['listening', 'reading'];
 
@@ -164,90 +193,23 @@ function testSummaryHtml(tests, idPrefix) {
     + '</div>';
 }
 
-const WEEK_LABELS = {
-  1: 'Xác lập baseline & xây kỹ thuật nền tảng',
-  2: 'Nâng chất ngôn ngữ, xử lý dạng khó',
-  3: 'Mock test cường độ cao, khóa lỗi trọng điểm',
-  4: 'Dồn lực tối đa, mô phỏng áp lực thi thật',
-};
-
 const WEEK_LABELS_KEY = 'ielts-tracker-week-labels';
 let weekLabelsOverride = {};
 try { weekLabelsOverride = JSON.parse(localStorage.getItem(WEEK_LABELS_KEY) || '{}'); } catch (e) { weekLabelsOverride = {}; }
 
 function getWeekLabel(w) {
   const v = weekLabelsOverride[w];
-  return (v !== undefined && v !== null && v !== '') ? v : WEEK_LABELS[w];
+  return (v !== undefined && v !== null) ? v : '';
 }
 
 function saveWeekLabel(w, text) {
   const trimmed = (text || '').trim();
-  if (trimmed && trimmed !== WEEK_LABELS[w]) weekLabelsOverride[w] = trimmed;
+  if (trimmed) weekLabelsOverride[w] = trimmed;
   else delete weekLabelsOverride[w];
   try { localStorage.setItem(WEEK_LABELS_KEY, JSON.stringify(weekLabelsOverride)); } catch (e) { /* ignore */ }
 }
 
-const PLAN = [
-  { week: 1, day: 1, isTest: true, title: 'Full mock test — Xác lập baseline',
-    desc: 'Làm 1 đề đầy đủ 4 kỹ năng trong điều kiện bấm giờ như thi thật. Chấm ngay và ghi lại band ước tính cho từng kỹ năng để làm mốc so sánh cho cả tháng.' },
-  { week: 1, day: 2, isTest: false, title: 'Phân tích lỗi & học lại cấu trúc chuẩn',
-    desc: 'Phân tích chi tiết từng câu sai trong bài test hôm qua.<br>- <b>Reading:</b> Học kỹ thuật skimming.<br>- <b>Writing:</b> Học lại cấu trúc chuẩn Task 1 & Task 2.<br>- <b>Speaking:</b> Quay video Part 1-2-3, nghe lại liệt kê lỗi.' },
-  { week: 1, day: 3, isTest: false, title: 'Kỹ thuật đọc nhanh & phản xạ nói',
-    desc: '- <b>Listening:</b> Dictation 20 phút.<br>- <b>Reading:</b> Luyện scanning trên đoạn văn ngắn.<br>- <b>Writing:</b> Viết 1 bài Task 1 (line graph).<br>- <b>Speaking:</b> Luyện Part 2 chủ đề quen thuộc, ghi âm so với bản mẫu band 7-8.' },
-  { week: 1, day: 4, isTest: false, title: 'True/False/Not Given & phản xạ ngữ pháp',
-    desc: '- <b>Listening:</b> Luyện dạng note completion.<br>- <b>Reading:</b> Luyện riêng True/False/Not Given, 15-20 câu.<br>- <b>Writing:</b> Viết 1 bài Task 2 opinion essay.<br>- <b>Speaking:</b> Luyện Part 1, tăng tốc độ phản xạ.' },
-  { week: 1, day: 5, isTest: false, title: 'Matching Headings & tự sửa bài viết',
-    desc: '- <b>Listening:</b> Map/plan labelling.<br>- <b>Reading:</b> Luyện riêng Matching Headings.<br>- <b>Writing:</b> Tự sửa 2 bài đã viết theo band descriptor.<br>- <b>Speaking:</b> Luyện lại Part 2 chủ đề mới, giảm "uh"/ngập ngừng.' },
-  { week: 1, day: 6, isTest: true, title: 'Full test có giờ & so sánh tiến bộ',
-    desc: '- <b>Listening:</b> Full test 4 Part bấm giờ.<br>- <b>Reading:</b> Full test 60 phút/3 passage.<br>- <b>Writing:</b> Viết Task 1 và Task 2 (random đề).<br>- <b>Speaking:</b> Quay lại full Part 1-2-3, so với ngày 2.' },
-  { week: 1, day: 7, isTest: false, title: 'Nghỉ hoàn toàn',
-    desc: 'Không luyện đề, không học kiến thức mới. Có thể đọc nhẹ 1 bài báo hoặc nghe podcast tiếng Anh nếu muốn, không bắt buộc.' },
-
-  { week: 2, day: 8, isTest: false, title: 'Timed reading & paraphrase',
-    desc: '- <b>Listening:</b> Đa accent (Anh-Úc, Anh-Mỹ).<br>- <b>Reading:</b> Timed test, rút dần thời gian còn 55-60 phút/3 passage.<br>- <b>Writing:</b> Học paraphrase câu hỏi cho introduction.<br>- <b>Speaking:</b> Luyện Part 3 discussion.' },
-  { week: 2, day: 9, isTest: false, title: 'Từ vựng học thuật & shadowing',
-    desc: '- <b>Listening:</b> Luyện dạng matching.<br>- <b>Reading:</b> Học 15 collocation học thuật (AWL), áp dụng ngay.<br>- <b>Writing:</b> Viết 1 bài Task 1 áp dụng paraphrase.<br>- <b>Speaking:</b> Shadowing 15 phút theo TED Talk.' },
-  { week: 2, day: 10, isTest: true, title: 'Full test đa accent & linking devices',
-    desc: '- <b>Listening:</b> Full test đa accent.<br>- <b>Reading:</b> Full test timed nghiêm ngặt.<br>- <b>Writing:</b> Viết bài Task 2, dùng linking words/referencing.<br>- <b>Speaking:</b> Luyện Part 2 chủ đề trừu tượng hơn.' },
-  { week: 2, day: 11, isTest: false, title: 'Đào sâu Matching Headings & lập luận 2 chiều',
-    desc: '- <b>Listening:</b> Luyện lại đúng câu đã sai tuần trước.<br>- <b>Reading:</b> 20 bài Matching Headings.<br>- <b>Writing:</b> Tự sửa bài, chú trọng Coherence and Cohesion.<br>- <b>Speaking:</b> Part 3 lập luận 2 chiều.' },
-  { week: 2, day: 12, isTest: false, title: 'Đào sâu T/F/NG & dictation nâng cao',
-    desc: '- <b>Listening:</b> Dictation nâng cao, câu dài tốc độ nhanh.<br>- <b>Reading:</b> 20 bài True/False/Not Given.<br>- <b>Writing:</b> Viết bài Task 1 thứ hai trong tuần.<br>- <b>Speaking:</b> Shadowing + ghi âm so phát âm.' },
-  { week: 2, day: 13, isTest: true, title: 'Full mock 4 kỹ năng',
-    desc: 'Làm 1 đề đầy đủ 4 kỹ năng trong điều kiện thi thật.<br>- <b>Writing:</b> Bài Task 2 thứ hai trong tuần.<br>- <b>Speaking:</b> Tự chấm theo 4 tiêu chí band descriptor sau khi ghi âm.' },
-  { week: 2, day: 14, isTest: false, title: 'Nghỉ hoàn toàn',
-    desc: 'Không luyện đề nặng. Có thể review nhẹ vocabulary bank đã học trong tuần bằng flashcard nếu muốn.' },
-
-  { week: 3, day: 15, isTest: true, title: 'Full mock test lần 1',
-    desc: 'Làm đề đầy đủ 4 kỹ năng liên tục theo đúng lịch thi thật (L-R-W buổi sáng, Speaking buổi chiều). Chấm nghiêm khắc theo band descriptor ngay trong ngày.' },
-  { week: 3, day: 16, isTest: false, title: 'Phân tích lỗi & dồn lực kỹ năng yếu nhất',
-    desc: 'Phân tích lỗi từ mock hôm qua, so với checkpoint tuần 3. Dồn thời gian cho kỹ năng thấp nhất (thường là Reading).<br>- <b>Writing:</b> Bài Task 2 dạng advantages/disadvantages.' },
-  { week: 3, day: 17, isTest: false, title: 'Luyện tập trung & mock interview',
-    desc: '- <b>Listening & Reading:</b> Luyện theo đúng dạng lỗi vừa phát hiện.<br>- <b>Writing:</b> Viết 1 bài Task 1.<br>- <b>Speaking:</b> Tìm 1 buổi mock interview thật với giáo viên/bạn học, ghi âm toàn bộ.' },
-  { week: 3, day: 18, isTest: true, title: 'Full mock test lần 2',
-    desc: 'Làm đề đầy đủ 4 kỹ năng lần 2 trong tuần. So sánh trực tiếp với lần 1 (ngày 15) để xem kỹ năng nào đang tiến bộ.' },
-  { week: 3, day: 19, isTest: false, title: 'Xử lý kỹ năng yếu còn lại',
-    desc: 'Dồn thời gian cho kỹ năng yếu thứ hai theo checkpoint (thường là Writing).<br>- <b>Listening & Reading:</b> Nghe/đọc lại các đoạn hay sai để khắc sâu.<br>- <b>Writing:</b> Viết bài Task 2 dạng problem/solution.' },
-  { week: 3, day: 20, isTest: true, title: 'Full mock test lần 3',
-    desc: 'Làm đề đầy đủ 4 kỹ năng lần 3 trong tuần. Nếu sắp xếp được, làm thêm 1 buổi mock interview Speaking với người khác để đa dạng phản hồi.' },
-  { week: 3, day: 21, isTest: false, title: 'Nghỉ & review error log',
-    desc: 'Nghỉ luyện đề nặng. Dành 30-45 phút review lại toàn bộ error log 3 tuần, tách lỗi đã khắc phục và lỗi vẫn lặp lại để ưu tiên xử lý ở tuần 4.' },
-
-  { week: 4, day: 22, isTest: true, title: 'Full mock test lần 1',
-    desc: 'Làm đề đầy đủ 4 kỹ năng theo điều kiện thi thật. Chấm ngay, dành buổi tối phân tích lỗi chi tiết từng câu sai.' },
-  { week: 4, day: 23, isTest: false, title: 'Luyện đúng dạng yếu nhất',
-    desc: 'Không học kiến thức mới nữa. Chỉ luyện đúng dạng câu hỏi/kỹ năng con đang yếu nhất theo checkpoint cả 4 tuần.<br>- <b>Speaking:</b> Trả lời tự nhiên, tránh học thuộc lòng.' },
-  { week: 4, day: 24, isTest: true, title: 'Full mock test lần 2',
-    desc: 'Làm đề đầy đủ 4 kỹ năng lần 2 trong tuần. So sánh với các lần mock trước để xác nhận mức độ ổn định phong độ.' },
-  { week: 4, day: 25, isTest: false, title: 'Fix lỗi lặp lại',
-    desc: 'Tập trung xử lý dứt điểm những lỗi đã lặp lại nhiều lần trong error log.<br>- <b>Speaking:</b> Trả lời tự nhiên, không học thuộc câu mẫu để tránh trừ điểm Fluency.' },
-  { week: 4, day: 26, isTest: true, title: 'Mock test cuối cùng',
-    desc: 'Làm đề đầy đủ 4 kỹ năng, mô phỏng đúng 100% điều kiện phòng thi: không tra từ, không dừng giữa chừng, không tắt âm thanh Listening.' },
-  { week: 4, day: 27, isTest: false, title: 'Giảm tải',
-    desc: 'Giảm cường độ còn 3-4 giờ/ngày. Chỉ ôn lại vocabulary bank và cấu trúc ngữ pháp hay dùng, không luyện đề nặng để tránh kiệt sức.' },
-  { week: 4, day: 28, isTest: false, title: 'Ngày trước thi — Giữ phong độ',
-    desc: 'Chỉ ôn nhẹ vài cấu trúc Writing và từ vựng hay dùng, không luyện đề mới. Ưu tiên ngủ đủ giấc, giữ tinh thần thoải mái để vào phòng thi tỉnh táo nhất.' }
-];
+let PLAN = buildPlan();
 
 const STORAGE_KEY = 'ielts-tracker-entries';
 
@@ -821,6 +783,10 @@ function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function fmtBand(v) {
+  return v === 0 ? '—' : v.toFixed(1);
+}
+
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
@@ -853,7 +819,7 @@ function formatDateTyping(raw) {
 function currentBand() {
   const result = {};
   SKILLS.forEach((s) => { result[s.key] = null; });
-  for (let d = 1; d <= 28; d++) {
+  for (let d = 1; d <= TOTAL_DAYS; d++) {
     const e = entries[d];
     if (!e) continue;
     SKILLS.forEach((s) => {
@@ -874,7 +840,7 @@ function weekChartData() {
     writing: SKILLS[2].baseline,
     speaking: SKILLS[3].baseline,
   }];
-  for (let d = 1; d <= 28; d++) {
+  for (let d = 1; d <= TOTAL_DAYS; d++) {
     const e = entries[d];
     if (!e) continue;
     const point = { x: d };
@@ -998,8 +964,12 @@ function practicecChartData() {
 
 function renderHeader() {
   const completedCount = Object.values(entries).filter((e) => e && e.completed).length;
-  document.getElementById('header-sub').textContent =
-    'Overall ' + OVERALL_BASELINE.toFixed(1) + ' → ' + OVERALL_TARGET.toFixed(1) + ' trong 1 tháng · ' + completedCount + '/28 ngày đã đánh dấu hoàn thành';
+  const hasTargets = OVERALL_BASELINE !== 0 || OVERALL_TARGET !== 0;
+  document.getElementById('header-sub').textContent = hasTargets
+    ? ('Overall ' + fmtBand(OVERALL_BASELINE) + ' → ' + fmtBand(OVERALL_TARGET) + ' · ' + completedCount + '/' + TOTAL_DAYS + ' ngày đã đánh dấu hoàn thành')
+    : ('Bấm "⚙ Tùy chỉnh mục tiêu" để đặt band hiện tại & mục tiêu của bạn · ' + completedCount + '/' + TOTAL_DAYS + ' ngày đã đánh dấu hoàn thành');
+  const eyebrow = document.getElementById('eyebrow-days');
+  if (eyebrow) eyebrow.textContent = 'Logbook · ' + TOTAL_DAYS + ' ngày · ' + WEEKS_COUNT + ' tuần';
 }
 
 function renderStats() {
@@ -1009,14 +979,14 @@ function renderStats() {
 
     return '<div class="stat-card" style="border-top-color:' + s.color + '; display:flex; flex-direction:column; justify-content:center;">'
       + '<div class="stat-label">' + s.label + '</div>'
-      + '<div class="stat-value-row"><span class="stat-value">' + curVal.toFixed(1) + '</span>'
-      + '<span class="stat-target">/ ' + s.target.toFixed(1) + '</span></div>'
+      + '<div class="stat-value-row"><span class="stat-value">' + fmtBand(curVal) + '</span>'
+      + '<span class="stat-target">/ ' + fmtBand(s.target) + '</span></div>'
       + '</div>';
   }).join('');
   html += '<div class="stat-card" style="border-top-color:var(--accent); display:flex; flex-direction:column; justify-content:center;">'
     + '<div class="stat-label">Overall</div>'
-    + '<div class="stat-value-row"><span class="stat-value">' + OVERALL_BASELINE.toFixed(1) + '</span>'
-    + '<span class="stat-target">/ ' + OVERALL_TARGET.toFixed(1) + '</span></div>'
+    + '<div class="stat-value-row"><span class="stat-value">' + fmtBand(OVERALL_BASELINE) + '</span>'
+    + '<span class="stat-target">/ ' + fmtBand(OVERALL_TARGET) + '</span></div>'
     + '</div>';
   grid.innerHTML = html;
 }
@@ -1024,7 +994,11 @@ function renderStats() {
 function renderSettingsFields() {
   const container = document.getElementById('settings-fields');
   if (!container) return;
-  const html = SKILLS.map((s) => (
+  let html = '<div class="settings-row settings-row-days">'
+    + '<div class="settings-skill-label">Số ngày học</div>'
+    + '<label class="settings-field settings-field-days">Tổng số ngày<input type="number" step="1" min="1" max="365" id="settings-total-days" value="' + TOTAL_DAYS + '" /></label>'
+    + '</div>';
+  html += SKILLS.map((s) => (
     '<div class="settings-row">'
       + '<div class="settings-skill-label" style="color:' + s.color + '">' + s.label + '</div>'
       + '<label class="settings-field">Hiện tại<input type="number" step="0.5" min="0" max="9" class="settings-input" data-skill="' + s.key + '" data-field="baseline" value="' + s.baseline + '" /></label>'
@@ -1034,12 +1008,25 @@ function renderSettingsFields() {
   container.innerHTML = html;
 }
 
+function applyTotalDaysChange(newTotalDays) {
+  const oldPlanByDay = {};
+  PLAN.forEach((d) => { oldPlanByDay[d.day] = d; });
+  TOTAL_DAYS = newTotalDays;
+  try { localStorage.setItem(TOTAL_DAYS_KEY, String(TOTAL_DAYS)); } catch (e) { /* ignore */ }
+  recomputeWeeksCount();
+  PLAN = buildPlan();
+  if (typeof mainTab === 'number' && mainTab > WEEKS_COUNT) {
+    mainTab = 1;
+    activeWeek = 1;
+  }
+}
+
 function aggregateSkillAverages(kind) {
   const sums = {}, counts = {};
   SKILLS.forEach((s) => { sums[s.key] = 0; counts[s.key] = 0; });
 
   if (kind === 'week') {
-    for (let d = 1; d <= 28; d++) {
+    for (let d = 1; d <= TOTAL_DAYS; d++) {
       const e = entries[d];
       if (!e) continue;
       SKILLS.forEach((s) => {
@@ -1100,7 +1087,7 @@ function renderCategoryAverages() {
       return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">'
         + '<span style="font-size:12px; font-weight:600; color:' + s.color + ';">' + s.label + '</span>'
         + '<div style="text-align:right;">'
-        + '<div class="stat-value-row" style="margin-top:0; justify-content:flex-end;"><span class="stat-value">' + (avgVal !== null ? avgVal.toFixed(1) : '—') + '</span><span class="stat-target">/ ' + s.target.toFixed(1) + '</span></div>'
+        + '<div class="stat-value-row" style="margin-top:0; justify-content:flex-end;"><span class="stat-value">' + (avgVal !== null ? avgVal.toFixed(1) : '—') + '</span><span class="stat-target">/ ' + fmtBand(s.target) + '</span></div>'
         + deltaHtml
         + '</div>'
         + '</div>';
@@ -1241,7 +1228,7 @@ function renderMainTabs() {
   html += '<button type="button" class="week-tab' + (mainTab === 'actual' ? ' active' : '') + '" data-action="select-tab" data-tab="actual">Actual Test</button>';
   html += '<button type="button" class="week-tab' + (mainTab === 'mock' ? ' active' : '') + '" data-action="select-tab" data-tab="mock">Mock Test</button>';
   html += '<button type="button" class="week-tab' + (mainTab === 'practicec' ? ' active' : '') + '" data-action="select-tab" data-tab="practicec">Practice C</button>';
-  for (let w = 1; w <= 4; w++) {
+  for (let w = 1; w <= WEEKS_COUNT; w++) {
     html += '<button type="button" class="week-tab' + (mainTab === w ? ' active' : '') + '" data-action="select-tab" data-tab="' + w + '">Tuần ' + w + '</button>';
   }
   document.getElementById('main-tabs').innerHTML = html;
@@ -1266,9 +1253,13 @@ function renderMainTabs() {
     caption.innerHTML = '';
   } else {
     activeWeek = mainTab;
+    const label = getWeekLabel(activeWeek);
+    const displayHtml = label
+      ? escapeHtml(label)
+      : '<span class="placeholder-text">Bấm để đặt tên chủ đề cho Tuần ' + activeWeek + '</span>';
     caption.innerHTML = '<span class="week-label-wrap" data-week="' + activeWeek + '">'
       + '<span class="week-label-text" data-action="edit-week-label" data-week="' + activeWeek + '">'
-      + escapeHtml(getWeekLabel(activeWeek)) + ' <span class="edit-icon">✎</span></span></span>';
+      + displayHtml + ' <span class="edit-icon">✎</span></span></span>';
   }
 }
 
@@ -1276,10 +1267,12 @@ function renderWeekSummary() {
   const days = PLAN.filter((d) => d.week === activeWeek);
   const doneCount = days.filter((d) => entries[d.day] && entries[d.day].completed).length;
   const cells = days.map((d) => {
-    const done = !!(entries[d.day] && entries[d.day].completed);
+    const e = entries[d.day] || {};
+    const done = !!e.completed;
+    const isTestVal = e.isTest !== undefined ? e.isTest : d.isTest;
     return '<div class="summary-cell">'
       + '<div class="summary-badge' + (done ? ' done' : '') + '" data-action="scroll-to-test" data-target="day-content-' + d.day + '" style="cursor:pointer;">' + (done ? '✓' : d.day) + '</div>'
-      + '<div class="summary-test-dot" style="background:' + (d.isTest ? 'var(--accent)' : 'transparent') + '"></div>'
+      + '<div class="summary-test-dot" style="background:' + (isTestVal ? 'var(--accent)' : 'transparent') + '"></div>'
       + '</div>';
   }).join('');
   document.getElementById('week-summary').innerHTML =
@@ -1296,18 +1289,28 @@ function renderDayList() {
     const isLast = idx === days.length - 1;
     const descContent = e.desc !== undefined ? e.desc : d.desc;
     const titleContent = e.title !== undefined ? e.title : d.title;
+    const isTestVal = e.isTest !== undefined ? e.isTest : d.isTest;
     const bandFields = SKILLS.map((s) => bandFieldHtml(s, e, 'data-day="' + d.day + '"', '')).join('');
+    const titleDisplay = titleContent
+      ? escapeHtml(titleContent)
+      : '<span class="placeholder-text">Bấm để đặt tiêu đề cho ngày ' + d.day + '</span>';
+    const descDisplay = descContent
+      ? descContent
+      : '<span class="placeholder-text">Bấm để thêm kế hoạch học cho ngày này…</span>';
     return '<div class="day-row">'
       + (!isLast ? '<div class="day-line"></div>' : '')
       + '<div class="day-badge' + (done ? ' done' : '') + '">' + (done ? '✓' : d.day) + '</div>'
       + '<div class="day-card" id="day-content-' + d.day + '">'
       + '<div class="day-title-row"><span class="day-title-wrap" data-day="' + d.day + '">'
-      + '<span class="day-title" data-action="edit-day-title" data-day="' + d.day + '">' + escapeHtml(titleContent) + '</span></span>'
-      + (d.isTest ? '<span class="test-badge">TEST</span>' : '') + '</div>'
+      + '<span class="day-title" data-action="edit-day-title" data-day="' + d.day + '">' + titleDisplay + '</span></span>'
+      + (isTestVal ? '<span class="test-badge">TEST</span>' : '') + '</div>'
       + '<div class="day-desc-wrap" data-day="' + d.day + '">'
-      + '<div class="day-desc" data-action="edit-day-desc" data-day="' + d.day + '">' + descContent + '</div>'
+      + '<div class="day-desc" data-action="edit-day-desc" data-day="' + d.day + '">' + descDisplay + '</div>'
       + '</div>'
+      + '<div class="day-toggles">'
       + '<label class="done-toggle"><input type="checkbox" ' + (done ? 'checked' : '') + ' data-day="' + d.day + '" data-kind="toggle" /> Đã học xong</label>'
+      + '<label class="done-toggle"><input type="checkbox" ' + (isTestVal ? 'checked' : '') + ' data-day="' + d.day + '" data-kind="istest-toggle" /> Ngày kiểm tra (test)</label>'
+      + '</div>'
       + '<div class="band-grid">' + bandFields + '</div>'
       + noteFieldHtml(e.note || '', 'note', 'data-day="' + d.day + '"', 'Ghi chú cho ngày này…')
       + '</div></div>';
@@ -1341,7 +1344,7 @@ function renderCharts() {
   document.getElementById('chart-actual').innerHTML = buildMiniChartSVG(actualChartData(), 6, [0, 2, 4, 6]);
   document.getElementById('chart-mock').innerHTML = buildMiniChartSVG(mockChartData(), 20, [0, 5, 10, 15, 20]);
   document.getElementById('chart-practicec').innerHTML = buildMiniChartSVG(practicecChartData(), 3, [0, 1, 2, 3]);
-  document.getElementById('chart-week').innerHTML = buildMiniChartSVG(weekChartData(), 28, [0, 7, 14, 21, 28]);
+  document.getElementById('chart-week').innerHTML = buildMiniChartSVG(weekChartData(), TOTAL_DAYS, weekXTicks());
   renderCommentary();
 }
 
@@ -1716,6 +1719,12 @@ document.addEventListener('change', (ev) => {
     entries[day].completed = t.checked;
     save();
     renderAll();
+  } else if (t.dataset && t.dataset.kind === 'istest-toggle') {
+    const day = t.dataset.day;
+    entries[day] = entries[day] || {};
+    entries[day].isTest = t.checked;
+    save();
+    renderAll();
   }
 });
 
@@ -1912,8 +1921,12 @@ document.addEventListener('click', (ev) => {
     const input = wrap.querySelector('.week-label-input');
     const newVal = input ? input.value.trim() : '';
     saveWeekLabel(week, newVal);
+    const savedLabel = getWeekLabel(week);
+    const displayHtml = savedLabel
+      ? escapeHtml(savedLabel)
+      : '<span class="placeholder-text">Bấm để đặt tên chủ đề cho Tuần ' + week + '</span>';
     wrap.innerHTML = '<span class="week-label-text" data-action="edit-week-label" data-week="' + week + '">'
-      + escapeHtml(getWeekLabel(week)) + ' <span class="edit-icon">✎</span></span>';
+      + displayHtml + ' <span class="edit-icon">✎</span></span>';
   } else if (t.dataset.action === 'open-settings') {
     renderSettingsFields();
     const modal = document.getElementById('settings-modal');
@@ -1922,6 +1935,12 @@ document.addEventListener('click', (ev) => {
     const modal = document.getElementById('settings-modal');
     if (modal) modal.style.display = 'none';
   } else if (t.dataset.action === 'save-settings') {
+    const daysInput = document.getElementById('settings-total-days');
+    let newTotalDays = daysInput ? parseInt(daysInput.value, 10) : TOTAL_DAYS;
+    if (isNaN(newTotalDays) || newTotalDays < 1) newTotalDays = 1;
+    if (newTotalDays > 365) newTotalDays = 365;
+    if (newTotalDays !== TOTAL_DAYS) applyTotalDaysChange(newTotalDays);
+
     const inputs = document.querySelectorAll('#settings-fields .settings-input');
     const config = {};
     inputs.forEach((inp) => {
@@ -1947,11 +1966,12 @@ document.addEventListener('click', (ev) => {
     if (modal) modal.style.display = 'none';
     renderAll();
   } else if (t.dataset.action === 'reset-settings') {
-    if (!confirm('Đặt lại band hiện tại/mục tiêu về mặc định?')) return;
+    if (!confirm('Đặt lại band hiện tại/mục tiêu và số ngày học về mặc định (28 ngày)?')) return;
     try { localStorage.removeItem(SKILLS_CONFIG_KEY); } catch (e) { /* ignore */ }
-    const defaults = { listening: { baseline: 6.5, target: 8.5 }, reading: { baseline: 5.5, target: 8.5 }, writing: { baseline: 5.5, target: 7.5 }, speaking: { baseline: 6.0, target: 7.0 } };
+    const defaults = { listening: { baseline: 0, target: 0 }, reading: { baseline: 0, target: 0 }, writing: { baseline: 0, target: 0 }, speaking: { baseline: 0, target: 0 } };
     SKILLS.forEach((s) => { s.baseline = defaults[s.key].baseline; s.target = defaults[s.key].target; });
     recomputeOverallTargets();
+    if (TOTAL_DAYS !== 28) applyTotalDaysChange(28);
     renderSettingsFields();
     renderAll();
   } else if (t.dataset.action === 'scroll-to-test') {

@@ -11,7 +11,7 @@
 <div class="wrap">
   <div style="text-align:center; position:relative;">
     <button type="button" class="settings-btn" data-action="open-settings" title="Tùy chỉnh band hiện tại & mục tiêu">⚙ Tùy chỉnh mục tiêu</button>
-    <div class="eyebrow">Logbook · 28 ngày</div>
+    <div class="eyebrow" id="eyebrow-days">Logbook</div>
     <h1>Nhật ký bứt phá IELTS</h1>
     <p class="sub" id="header-sub">Overall 6.0 → 8.0 trong 1 tháng</p>
     <p class="customize-hint">Bấm vào tên tuần hoặc tiêu đề từng ngày để đổi nội dung theo lộ trình của riêng bạn.</p>
@@ -40,7 +40,7 @@
     <div class="chart-head">
       <span class="chart-title">Đường bay điểm số</span>
     </div>
-    <p class="chart-note">Nét đứt là mục tiêu từng kỹ năng. Mỗi điểm là một lần bạn ghi band, so sánh song song giữa Cambridge, VOL, Actual Test, Mock Test, Practice C và 4 tuần học.</p>
+    <p class="chart-note" id="chart-note">Nét đứt là mục tiêu từng kỹ năng. Mỗi điểm là một lần bạn ghi band, so sánh song song giữa Cambridge, VOL, Actual Test, Mock Test, Practice C và các tuần học.</p>
     <div id="charts-row" class="charts-grid">
       <div class="charts-grid-item">
         <div style="font-size:12px; font-weight:600; margin-bottom:4px; color:var(--ink);">Cambridge</div>
@@ -63,7 +63,7 @@
         <div id="chart-practicec"></div>
       </div>
       <div class="charts-grid-item">
-        <div style="font-size:12px; font-weight:600; margin-bottom:4px; color:var(--ink);">4 tuần học</div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px; color:var(--ink);" id="chart-week-label">Toàn bộ lộ trình</div>
         <div id="chart-week"></div>
       </div>
     </div>

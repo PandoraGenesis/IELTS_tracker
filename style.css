@@ -141,6 +141,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .modal-note{ color:var(--ink-muted); font-size:12px; line-height:1.5; margin:0 0 14px; }
 .settings-row{ display:grid; grid-template-columns:80px 1fr 1fr; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); }
 .settings-row:last-child{ border-bottom:none; }
+.settings-row-days{ border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:2px; }
+.settings-field-days{ grid-column:span 2; }
 .settings-skill-label{ font-size:13px; font-weight:600; }
 .settings-field{ display:flex; flex-direction:column; gap:3px; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-muted); }
 .settings-field input{ font-family:'JetBrains Mono',monospace; font-size:13px; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--inset); color:var(--ink); text-transform:none; letter-spacing:normal; }
@@ -158,3 +160,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .edit-icon{ font-size:11px; opacity:.5; }
 .day-title-input{ font-family:'Fraunces',serif; font-weight:600; font-size:15px; padding:4px 6px; border-radius:6px; border:1px solid var(--accent); background:var(--inset); color:var(--ink); min-width:180px; }
 .week-label-input{ font-size:13px; padding:4px 6px; border-radius:6px; border:1px solid var(--accent); background:var(--inset); color:var(--ink); min-width:220px; }
+
+/* --- Web trống: placeholder khi chưa điền nội dung --- */
+.placeholder-text{ color:var(--ink-muted); font-style:italic; font-weight:400; }
+.day-toggles{ display:flex; flex-wrap:wrap; gap:6px 16px; margin:2px 0 4px; }
