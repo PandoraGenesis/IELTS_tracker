@@ -201,12 +201,14 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 
 .top-bar{ display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:0 0 4px; flex-wrap:wrap; }
 .top-btn-account{ display:inline-flex; align-items:center; gap:6px; }
+.top-avatar-btn{ position:relative; width:34px; height:34px; padding:0; border-radius:50%; border:2px solid var(--surface); background:var(--surface); box-shadow:0 2px 8px rgba(22,35,61,.22); cursor:pointer; display:block; flex-shrink:0; transition:box-shadow .15s ease, transform .15s ease; }
+.top-avatar-btn:hover{ box-shadow:0 0 0 2px var(--accent); }
+.top-avatar-btn > img, .top-avatar-btn > span:first-child{ width:100% !important; height:100% !important; border-radius:50%; display:flex; }
+.top-avatar-dot{ position:absolute; right:-2px; bottom:-2px; width:11px; height:11px; border-radius:50%; border:2px solid var(--surface); box-sizing:border-box; }
 .top-btn{ padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--accent); background:var(--surface); color:var(--accent); box-shadow:0 2px 8px rgba(22,35,61,.12); transition:background .15s ease, color .15s ease; white-space:nowrap; }
 .top-btn:hover{ background:var(--accent); color:#fff; }
-.top-icon-btn{ width:32px; height:32px; padding:0; border-radius:50%; font-size:15px; line-height:1; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--ink-muted); box-shadow:0 2px 8px rgba(22,35,61,.08); display:flex; align-items:center; justify-content:center; transition:background .15s ease, color .15s ease, border-color .15s ease; }
-.top-icon-btn:hover{ background:var(--inset); color:var(--accent); border-color:var(--accent); }
-@media(max-width:640px){ .top-btn{ padding:6px 10px; font-size:11px; } .top-icon-btn{ width:30px; height:30px; } }
-
+@media(max-width:640px){ .top-bar{ gap:6px; } .top-btn{ padding:6px 9px; font-size:11px; } @media(max-width:480px){ .top-btn .lbl{ display:none; } .top-btn{ padding:6px 11px; } }
+@media(max-width:400px){ .top-bar{ gap:5px; } .top-btn{ padding:6px 7px; font-size:10.5px; } 
 .modal-overlay{ position:fixed; inset:0; background:rgba(22,35,61,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000; }
 .modal-panel{ background:var(--surface); border-radius:12px; max-width:420px; width:100%; padding:20px 20px 18px; box-shadow:0 8px 30px rgba(22,35,61,.25); max-height:90vh; overflow-y:auto; }
 .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
@@ -239,11 +241,11 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 <body>
 <div class="wrap">
   <div class="top-bar">
-    <button type="button" class="top-btn top-btn-account" id="account-btn" data-action="account-btn-click">☁ Đăng nhập</button>
-    <button type="button" class="top-btn" data-action="export-data" title="Tải file sao lưu toàn bộ dữ liệu về máy">⬇ Sao lưu</button>
-    <button type="button" class="top-btn" data-action="import-data" title="Khôi phục dữ liệu từ file sao lưu">⬆ Khôi phục</button>
+    <button type="button" class="top-btn" data-action="export-data" title="Sao lưu: tải file chứa toàn bộ dữ liệu về máy" aria-label="Sao lưu dữ liệu">⬇<span class="lbl"> Sao lưu</span></button>
+    <button type="button" class="top-btn" data-action="import-data" title="Khôi phục: nạp dữ liệu từ file sao lưu" aria-label="Khôi phục dữ liệu">⬆<span class="lbl"> Khôi phục</span></button>
     <input type="file" id="import-file" accept=".json,application/json" style="display:none;" />
-    <button type="button" class="top-icon-btn" data-action="open-goals" title="Tùy chỉnh mục tiêu" aria-label="Tùy chỉnh mục tiêu">⚙</button>
+    <button type="button" class="top-btn" data-action="open-goals" title="Tùy chỉnh mục tiêu" aria-label="Tùy chỉnh mục tiêu"><span style="font-size:1.3em; line-height:0.8; display:inline-block;">⚙</span><span class="lbl"> Tùy chỉnh mục tiêu</span></button>
+    <button type="button" class="top-btn top-btn-account" id="account-btn" data-action="account-btn-click">☁ Đăng nhập</button>
   </div>
   <div style="text-align:center;">
     <h1 style="font-size:44px; margin:8px 0 4px;">NHẬT KÝ HỌC IELTS</h1>
@@ -3849,10 +3851,16 @@ function setSyncStatus(state, when, msg) {
 function renderAccountBtn() {
   const b = document.getElementById('account-btn');
   if (!b) return;
-  if (!sync.user) { b.innerHTML = '☁ Đăng nhập'; b.title = 'Đăng nhập Google để đồng bộ dữ liệu giữa các thiết bị'; return; }
-  const label = { syncing: 'Đang đồng bộ…', ok: 'Đã đồng bộ', error: '⚠ Lỗi đồng bộ', pending: '⚠ Chưa đồng bộ' }[sync.status] || 'Tài khoản';
-  b.innerHTML = syncAvatarHtml(sync.user, 18) + '<span>' + label + '</span>';
-  b.title = sync.user.email || '';
+  if (!sync.user) {
+    b.className = 'top-btn top-btn-account';
+    b.innerHTML = '☁ Đăng nhập';
+    b.title = 'Đăng nhập Google để đồng bộ dữ liệu giữa các thiết bị';
+    return;
+  }
+  const dotColor = { ok: 'var(--success)', syncing: 'var(--accent-bright)', error: 'var(--danger)', pending: 'var(--warning)' }[sync.status] || 'var(--ink-muted)';
+  b.className = 'top-avatar-btn';
+  b.innerHTML = syncAvatarHtml(sync.user, 30) + '<span class="top-avatar-dot" style="background:' + dotColor + ';"></span>';
+  b.title = (sync.user.email || '') + (syncStatusText() ? ' · ' + syncStatusText() : '');
 }
 
 function renderAccountPanel() {
