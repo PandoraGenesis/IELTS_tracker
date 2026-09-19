@@ -4970,8 +4970,9 @@
     // ===== Đăng nhập Google & đồng bộ dữ liệu giữa các thiết bị (Firebase) =====
     // Dán thông tin dự án Firebase của bạn vào đây (Project settings > Your apps > Web app > firebaseConfig).
     // Các giá trị này không phải mật khẩu, có thể để công khai trên GitHub; dữ liệu được bảo vệ bằng Firestore Rules.
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyBZ01zZo640BdRt-Lh1QYw11mrAQ3dUDIs",
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyBZ01zZo640BdRt-Lh1QYw11mrAQ3dUDis",
       authDomain: "ielts-tracker-8df1c.firebaseapp.com",
       projectId: "ielts-tracker-8df1c",
       storageBucket: "ielts-tracker-8df1c.firebasestorage.app",
@@ -4979,7 +4980,8 @@
       appId: "1:99837625722:web:2dbf91697eb9fb3c8842c3",
       measurementId: "G-12EJ9YC99N"
     };
-    const FIREBASE_SDK_VERSION = '10.12.2';
+
+    const FIREBASE_SDK_VERSION = '7.20.0';
 
     const sync = {
       user: null, auth: null, db: null, ready: false,
