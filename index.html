@@ -202,6 +202,10 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .goals-btn{ position:absolute; top:0; right:0; z-index:5; padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--accent); background:var(--surface); color:var(--accent); box-shadow:0 2px 8px rgba(22,35,61,.12); transition:background .15s ease, color .15s ease; }
 .goals-btn:hover{ background:var(--accent); color:#fff; }
 @media(max-width:640px){ .goals-btn{ padding:6px 10px; font-size:11px; } }
+.backup-btns{ position:absolute; top:0; left:0; z-index:5; display:flex; gap:6px; }
+.backup-btn{ padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--ink-muted); box-shadow:0 2px 8px rgba(22,35,61,.08); transition:background .15s ease, color .15s ease, border-color .15s ease; }
+.backup-btn:hover{ background:var(--inset); color:var(--accent); border-color:var(--accent); }
+@media(max-width:640px){ .backup-btn{ padding:6px 10px; font-size:11px; } }
 
 .modal-overlay{ position:fixed; inset:0; background:rgba(22,35,61,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000; }
 .modal-panel{ background:var(--surface); border-radius:12px; max-width:420px; width:100%; padding:20px 20px 18px; box-shadow:0 8px 30px rgba(22,35,61,.25); max-height:90vh; overflow-y:auto; }
@@ -234,6 +238,11 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 </head>
 <body>
 <div class="wrap">
+  <div class="backup-btns">
+    <button type="button" class="backup-btn" data-action="export-data" title="Tải file sao lưu toàn bộ dữ liệu về máy">⬇ Sao lưu</button>
+    <button type="button" class="backup-btn" data-action="import-data" title="Khôi phục dữ liệu từ file sao lưu">⬆ Khôi phục</button>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none;" />
+  </div>
   <button type="button" class="goals-btn" data-action="open-goals">⚙ Tùy chỉnh mục tiêu</button>
   <div style="text-align:center;">
     <h1 style="font-size:44px; margin:8px 0 4px;">NHẬT KÝ HỌC IELTS</h1>
@@ -3440,6 +3449,66 @@ document.addEventListener('keydown', (ev) => {
     const saveBtn = ev.target.parentElement ? ev.target.parentElement.querySelector('.day-desc-save-btn') : null;
     if (saveBtn) saveBtn.click();
   }
+});
+
+
+// ===== Sao lưu / Khôi phục dữ liệu (localStorage không tự chuyển giữa file local và github.io) =====
+const BACKUP_PREFIX = 'ielts-tracker-';
+
+function exportAllData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf(BACKUP_PREFIX) === 0) data[k] = localStorage.getItem(k);
+  }
+  const payload = { app: 'ielts-tracker', version: 1, exportedAt: new Date().toISOString(), data: data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const d = new Date();
+  const pad = (n) => (n < 10 ? '0' : '') + n;
+  const name = 'ielts-tracker-backup-' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '.json';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+function importAllData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try { payload = JSON.parse(reader.result); } catch (e) { alert('File không hợp lệ (không đọc được JSON).'); return; }
+    const data = payload && payload.data;
+    if (!data || typeof data !== 'object') { alert('File không đúng định dạng sao lưu của IELTS Tracker.'); return; }
+    const keys = Object.keys(data).filter((k) => k.indexOf(BACKUP_PREFIX) === 0 && typeof data[k] === 'string');
+    if (!keys.length) { alert('File sao lưu không có dữ liệu nào.'); return; }
+    if (!confirm('Khôi phục sẽ GHI ĐÈ toàn bộ dữ liệu hiện có trên trình duyệt này bằng dữ liệu trong file. Tiếp tục?')) return;
+    try {
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(BACKUP_PREFIX) === 0) toRemove.push(k);
+      }
+      toRemove.forEach((k) => localStorage.removeItem(k));
+      keys.forEach((k) => localStorage.setItem(k, data[k]));
+    } catch (e) { console.error(e); alert('Không ghi được dữ liệu vào trình duyệt.'); return; }
+    location.reload();
+  };
+  reader.readAsText(file);
+}
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest ? ev.target.closest('[data-action]') : null;
+  if (!t) return;
+  if (t.dataset.action === 'export-data') exportAllData();
+  else if (t.dataset.action === 'import-data') document.getElementById('import-file').click();
+});
+
+document.getElementById('import-file').addEventListener('change', (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (f) importAllData(f);
 });
 
 renderAll();
