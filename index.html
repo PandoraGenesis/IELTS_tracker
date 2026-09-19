@@ -199,7 +199,8 @@ h1{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; margin:4px 0 
 .storage-note{ text-align:center; color:var(--ink-muted); font-size:11px; margin-top:6px; }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button{ opacity:.5; }
 
-.top-bar{ display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:0 0 4px; }
+.top-bar{ display:flex; justify-content:flex-end; align-items:center; gap:8px; margin:0 0 4px; flex-wrap:wrap; }
+.top-btn-account{ display:inline-flex; align-items:center; gap:6px; }
 .top-btn{ padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--accent); background:var(--surface); color:var(--accent); box-shadow:0 2px 8px rgba(22,35,61,.12); transition:background .15s ease, color .15s ease; white-space:nowrap; }
 .top-btn:hover{ background:var(--accent); color:#fff; }
 .top-icon-btn{ width:32px; height:32px; padding:0; border-radius:50%; font-size:15px; line-height:1; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--ink-muted); box-shadow:0 2px 8px rgba(22,35,61,.08); display:flex; align-items:center; justify-content:center; transition:background .15s ease, color .15s ease, border-color .15s ease; }
@@ -238,6 +239,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 <body>
 <div class="wrap">
   <div class="top-bar">
+    <button type="button" class="top-btn top-btn-account" id="account-btn" data-action="account-btn-click">☁ Đăng nhập</button>
     <button type="button" class="top-btn" data-action="export-data" title="Tải file sao lưu toàn bộ dữ liệu về máy">⬇ Sao lưu</button>
     <button type="button" class="top-btn" data-action="import-data" title="Khôi phục dữ liệu từ file sao lưu">⬆ Khôi phục</button>
     <input type="file" id="import-file" accept=".json,application/json" style="display:none;" />
@@ -350,6 +352,41 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   </div>
 </div>
 
+<div class="modal-overlay" id="account-overlay" data-action="close-account">
+  <div class="modal-panel" data-action="noop">
+    <div class="modal-head">
+      <span class="modal-title">Tài khoản &amp; đồng bộ</span>
+      <button type="button" class="modal-close-btn" data-action="close-account">✕</button>
+    </div>
+    <div id="account-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="conflict-overlay">
+  <div class="modal-panel" data-action="noop">
+    <div class="modal-head">
+      <span class="modal-title">Dữ liệu đang khác nhau</span>
+    </div>
+    <div id="conflict-body"></div>
+  </div>
+</div>
+
+<script>
+// Theo dõi mọi thay đổi dữ liệu (localStorage) để tự đồng bộ khi đã đăng nhập.
+// Phải chạy trước code của app.
+(function () {
+  var hook = window.__ielts = { applying: false, onChange: null };
+  var PREFIX = 'ielts-tracker-';
+  var origSet = Storage.prototype.setItem, origRemove = Storage.prototype.removeItem;
+  function notify(store, key) {
+    try {
+      if (store === window.localStorage && typeof key === 'string' && key.indexOf(PREFIX) === 0 && !hook.applying && hook.onChange) hook.onChange(key);
+    } catch (e) { /* bỏ qua */ }
+  }
+  Storage.prototype.setItem = function (k, v) { origSet.call(this, k, v); notify(this, k); };
+  Storage.prototype.removeItem = function (k) { origRemove.call(this, k); notify(this, k); };
+})();
+</script>
 <script>
 const SKILLS = [
   { key: 'listening', label: 'Listening', baseline: 6.5, target: 8.5, color: '#0E9488' },
@@ -3509,6 +3546,359 @@ document.getElementById('import-file').addEventListener('change', (ev) => {
   ev.target.value = '';
   if (f) importAllData(f);
 });
+
+
+// ===== Đăng nhập Google & đồng bộ dữ liệu giữa các thiết bị (Firebase) =====
+// Dán thông tin dự án Firebase của bạn vào đây (Project settings > Your apps > Web app > firebaseConfig).
+// Các giá trị này không phải mật khẩu, có thể để công khai trên GitHub; dữ liệu được bảo vệ bằng Firestore Rules.
+const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  appId: ''
+};
+const FIREBASE_SDK_VERSION = '10.12.2';
+
+const sync = {
+  user: null, auth: null, db: null, ready: false,
+  busy: false, again: false, timer: null,
+  status: 'signedout', lastSyncedAt: null, error: '',
+  conflictResolve: null, deferred: false
+};
+
+function syncConfigured() { return !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId); }
+
+function getDeviceId() {
+  let id = null;
+  try { id = localStorage.getItem('ielts-sync-device'); } catch (e) { /* bỏ qua */ }
+  if (!id) {
+    id = 'd' + Math.random().toString(36).slice(2, 10);
+    try { localStorage.setItem('ielts-sync-device', id); } catch (e) { /* bỏ qua */ }
+  }
+  return id;
+}
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = resolve;
+    el.onerror = () => reject(new Error('Không tải được ' + src));
+    document.head.appendChild(el);
+  });
+}
+
+async function ensureFirebase() {
+  if (sync.ready) return;
+  if (!window.firebase || !window.firebase.apps) {
+    const base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_SDK_VERSION + '/';
+    await loadScriptOnce(base + 'firebase-app-compat.js');
+    await Promise.all([loadScriptOnce(base + 'firebase-auth-compat.js'), loadScriptOnce(base + 'firebase-firestore-compat.js')]);
+  }
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  sync.auth = firebase.auth();
+  sync.db = firebase.firestore();
+  sync.ready = true;
+  sync.auth.onAuthStateChanged(onAuthChanged);
+}
+
+// ---- Dữ liệu cục bộ ----
+function collectLocalData() {
+  const raw = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf(BACKUP_PREFIX) === 0) raw[k] = localStorage.getItem(k);
+  }
+  const sorted = {};
+  Object.keys(raw).sort().forEach((k) => { sorted[k] = raw[k]; });
+  return sorted;
+}
+
+function meaningfulData(data) {
+  return Object.keys(data).some((k) => { const v = data[k]; return v && v !== '{}' && v !== '[]' && v !== 'null'; });
+}
+
+function hashStr(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return h + ':' + str.length;
+}
+
+function syncMetaKey(uid) { return 'ielts-sync-meta-' + uid; }
+function loadSyncMeta(uid) {
+  try { return JSON.parse(localStorage.getItem(syncMetaKey(uid)) || 'null') || {}; } catch (e) { return {}; }
+}
+function saveSyncMeta(uid, meta) {
+  try { localStorage.setItem(syncMetaKey(uid), JSON.stringify(meta)); } catch (e) { /* bỏ qua */ }
+}
+
+function downloadBackupFile(data, label) {
+  const payload = { app: 'ielts-tracker', version: 1, exportedAt: new Date().toISOString(), data: data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const d = new Date();
+  const pad = (n) => (n < 10 ? '0' : '') + n;
+  const name = 'ielts-tracker-' + label + '-' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + '.json';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+// Ghi dữ liệu từ tài khoản xuống máy rồi tải lại trang
+function applyRemote(remote) {
+  const uid = sync.user.uid;
+  const data = JSON.parse(remote.payload);
+  window.__ielts.applying = true;
+  try {
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf(BACKUP_PREFIX) === 0) toRemove.push(k);
+    }
+    toRemove.forEach((k) => localStorage.removeItem(k));
+    Object.keys(data).forEach((k) => { if (k.indexOf(BACKUP_PREFIX) === 0) localStorage.setItem(k, data[k]); });
+  } finally { window.__ielts.applying = false; }
+  saveSyncMeta(uid, { baseRemoteAt: remote.updatedAt, baseHash: hashStr(JSON.stringify(collectLocalData())) });
+  location.reload();
+}
+
+// Đẩy dữ liệu máy lên tài khoản. expectedBase = mốc updatedAt trên tài khoản mà máy này đã thấy (null nếu chưa có).
+async function pushLocal(expectedBase) {
+  const uid = sync.user.uid;
+  const str = JSON.stringify(collectLocalData());
+  if (str.length > 900000) throw new Error('Dữ liệu quá lớn để đồng bộ');
+  const ref = sync.db.collection('users').doc(uid);
+  let savedAt = 0;
+  await sync.db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const cur = snap.exists ? snap.data().updatedAt : null;
+    if (cur !== expectedBase) { const err = new Error('conflict'); err.isConflict = true; throw err; }
+    savedAt = Math.max(Date.now(), (cur || 0) + 1);
+    tx.set(ref, { payload: str, updatedAt: savedAt, device: getDeviceId(), version: 1 });
+  });
+  saveSyncMeta(uid, { baseRemoteAt: savedAt, baseHash: hashStr(str) });
+}
+
+function askConflict(remote) {
+  return new Promise((resolve) => {
+    sync.conflictResolve = resolve;
+    const when = new Date(remote.updatedAt).toLocaleString('vi-VN');
+    const btn = 'modal-btn" style="display:block; width:100%; text-align:left; margin-bottom:10px; line-height:1.4;';
+    document.getElementById('conflict-body').innerHTML =
+      '<p class="modal-hint" style="margin:0 0 14px;">Dữ liệu trên tài khoản Google và dữ liệu trên máy này không giống nhau. Chọn bản bạn muốn giữ. Bản còn lại sẽ được tự tải về máy dưới dạng file sao lưu trước khi bị thay thế.</p>'
+      + '<button type="button" class="modal-btn modal-btn-primary" style="display:block; width:100%; text-align:left; margin-bottom:10px; line-height:1.4;" data-action="conflict-remote">Dùng dữ liệu trên tài khoản<br><span style="font-weight:400; font-size:12px;">Cập nhật lúc ' + escapeHtml(when) + '. Máy này sẽ bị thay bằng bản này.</span></button>'
+      + '<button type="button" class="' + btn + '" data-action="conflict-local">Dùng dữ liệu trên máy này<br><span style="font-weight:400; font-size:12px;">Ghi đè lên dữ liệu trên tài khoản.</span></button>'
+      + '<button type="button" class="' + btn + ' margin-bottom:0;" data-action="conflict-later">Để sau</button>';
+    document.getElementById('conflict-overlay').style.display = 'flex';
+  });
+}
+
+function resolveConflict(choice) {
+  document.getElementById('conflict-overlay').style.display = 'none';
+  const fn = sync.conflictResolve;
+  sync.conflictResolve = null;
+  if (fn) fn(choice);
+}
+
+async function syncOnce(isRetry) {
+  const uid = sync.user.uid;
+  const ref = sync.db.collection('users').doc(uid);
+  const snap = await ref.get();
+  const localData = collectLocalData();
+  const hasLocal = meaningfulData(localData);
+  const localHash = hashStr(JSON.stringify(localData));
+  const meta = loadSyncMeta(uid);
+  const baseAt = meta.baseRemoteAt === undefined ? null : meta.baseRemoteAt;
+
+  if (!snap.exists) {
+    if (hasLocal) {
+      try { await pushLocal(null); } catch (e) { if (e.isConflict && !isRetry) return syncOnce(true); throw e; }
+    }
+    return 'ok';
+  }
+  const remote = snap.data();
+  if (hashStr(remote.payload) === localHash) {
+    saveSyncMeta(uid, { baseRemoteAt: remote.updatedAt, baseHash: localHash });
+    return 'ok';
+  }
+  if (!hasLocal) { applyRemote(remote); return 'reload'; }
+  if (baseAt === remote.updatedAt) {
+    try { await pushLocal(remote.updatedAt); } catch (e) { if (e.isConflict && !isRetry) return syncOnce(true); throw e; }
+    return 'ok';
+  }
+  if (baseAt !== null && meta.baseHash === localHash) { applyRemote(remote); return 'reload'; }
+
+  const choice = await askConflict(remote);
+  if (choice === 'remote') {
+    if (hasLocal) downloadBackupFile(localData, 'backup-may-nay');
+    applyRemote(remote);
+    return 'reload';
+  }
+  if (choice === 'local') {
+    try { downloadBackupFile(JSON.parse(remote.payload), 'backup-tai-khoan'); } catch (e) { /* bỏ qua */ }
+    await pushLocal(remote.updatedAt);
+    return 'ok';
+  }
+  return 'deferred';
+}
+
+function describeSyncError(e) {
+  const code = e && e.code ? String(e.code) : '';
+  if (code.indexOf('permission-denied') !== -1) return 'Firestore chưa cho phép ghi dữ liệu (kiểm tra lại Rules).';
+  if (code.indexOf('unavailable') !== -1 || (typeof navigator !== 'undefined' && navigator.onLine === false)) return 'Không có kết nối mạng.';
+  return (e && (e.message || code)) || 'Lỗi không xác định';
+}
+
+async function syncNow(reason) {
+  if (!sync.user || !sync.db) return;
+  if (sync.conflictResolve) return;
+  if (sync.deferred && reason !== 'manual' && reason !== 'login') return;
+  if (reason === 'manual') sync.deferred = false;
+  if (sync.busy) { sync.again = true; return; }
+  sync.busy = true;
+  sync.again = false;
+  setSyncStatus('syncing');
+  try {
+    const result = await syncOnce(false);
+    if (result === 'deferred') { sync.deferred = true; setSyncStatus('pending'); }
+    else if (result === 'ok') setSyncStatus('ok', Date.now());
+  } catch (e) {
+    console.error(e);
+    setSyncStatus('error', null, describeSyncError(e));
+  } finally {
+    sync.busy = false;
+    if (sync.again) { sync.again = false; scheduleSync(300); }
+  }
+}
+
+function scheduleSync(ms) {
+  clearTimeout(sync.timer);
+  sync.timer = setTimeout(() => syncNow('change'), ms);
+}
+
+// ---- Đăng nhập / đăng xuất ----
+function onAuthChanged(user) {
+  sync.user = user || null;
+  sync.deferred = false;
+  if (user) { setSyncStatus('syncing'); syncNow('login'); }
+  else { clearTimeout(sync.timer); setSyncStatus('signedout'); }
+}
+
+async function signInGoogle() {
+  if (location.protocol === 'file:') {
+    alert('Đăng nhập Google chỉ hoạt động khi mở trang qua link https (ví dụ link GitHub Pages), không dùng được khi mở trực tiếp file từ máy.');
+    return;
+  }
+  if (!syncConfigured()) {
+    alert('Chưa cấu hình Firebase. Mở file index.html, tìm khối FIREBASE_CONFIG ở cuối file và dán thông tin dự án Firebase của bạn vào.');
+    return;
+  }
+  let provider = null;
+  try {
+    await ensureFirebase();
+    provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await sync.auth.signInWithPopup(provider);
+  } catch (e) {
+    const code = e && e.code ? String(e.code) : '';
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+    if ((code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') && provider) {
+      try { await sync.auth.signInWithRedirect(provider); return; } catch (e2) { e = e2; }
+    }
+    let msg = 'Đăng nhập thất bại: ' + ((e && (e.code || e.message)) || 'lỗi không xác định');
+    if (String(e && e.code) === 'auth/unauthorized-domain') msg += '\n\nHãy thêm tên miền của trang này vào Firebase Console > Authentication > Settings > Authorized domains.';
+    alert(msg);
+  }
+}
+
+async function signOutGoogle() {
+  closeAccountPanel();
+  try { if (sync.auth) await sync.auth.signOut(); } catch (e) { console.error(e); }
+}
+
+// ---- Giao diện ----
+function syncAvatarHtml(user, size) {
+  if (user && user.photoURL) {
+    return '<img src="' + escapeHtml(user.photoURL) + '" alt="" referrerpolicy="no-referrer" style="width:' + size + 'px; height:' + size + 'px; border-radius:50%; object-fit:cover; flex-shrink:0;" />';
+  }
+  const letter = ((user && (user.displayName || user.email)) || '?').charAt(0).toUpperCase();
+  return '<span style="width:' + size + 'px; height:' + size + 'px; border-radius:50%; background:var(--accent); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:' + Math.round(size * 0.55) + 'px; font-weight:600; flex-shrink:0;">' + escapeHtml(letter) + '</span>';
+}
+
+function syncStatusText() {
+  if (sync.status === 'syncing') return 'Đang đồng bộ…';
+  if (sync.status === 'ok') {
+    const t = sync.lastSyncedAt ? new Date(sync.lastSyncedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+    return 'Đã đồng bộ' + (t ? ' lúc ' + t : '');
+  }
+  if (sync.status === 'error') return 'Lỗi đồng bộ: ' + sync.error;
+  if (sync.status === 'pending') return 'Chưa đồng bộ: cần chọn bản dữ liệu muốn giữ. Bấm "Đồng bộ ngay" để chọn lại.';
+  return '';
+}
+
+function setSyncStatus(state, when, msg) {
+  sync.status = state;
+  if (when) sync.lastSyncedAt = when;
+  sync.error = msg || '';
+  renderAccountBtn();
+  renderAccountPanel();
+}
+
+function renderAccountBtn() {
+  const b = document.getElementById('account-btn');
+  if (!b) return;
+  if (!sync.user) { b.innerHTML = '☁ Đăng nhập'; b.title = 'Đăng nhập Google để đồng bộ dữ liệu giữa các thiết bị'; return; }
+  const label = { syncing: 'Đang đồng bộ…', ok: 'Đã đồng bộ', error: '⚠ Lỗi đồng bộ', pending: '⚠ Chưa đồng bộ' }[sync.status] || 'Tài khoản';
+  b.innerHTML = syncAvatarHtml(sync.user, 18) + '<span>' + label + '</span>';
+  b.title = sync.user.email || '';
+}
+
+function renderAccountPanel() {
+  const body = document.getElementById('account-body');
+  if (!body || !sync.user) return;
+  const u = sync.user;
+  body.innerHTML =
+    '<div style="display:flex; gap:12px; align-items:center; margin-bottom:14px;">' + syncAvatarHtml(u, 40)
+    + '<div style="min-width:0;"><div style="font-weight:600;">' + escapeHtml(u.displayName || '') + '</div>'
+    + '<div style="font-size:12px; color:var(--ink-muted); word-break:break-all;">' + escapeHtml(u.email || '') + '</div></div></div>'
+    + '<p class="modal-hint" style="margin:0 0 6px;">' + escapeHtml(syncStatusText()) + '</p>'
+    + '<p class="modal-hint" style="margin:0 0 16px;">Dữ liệu tự động đồng bộ sau mỗi lần bạn nhập, và khi bạn mở lại trang.</p>'
+    + '<div class="modal-actions">'
+    + '<button type="button" class="modal-btn" data-action="sign-out">Đăng xuất</button>'
+    + '<button type="button" class="modal-btn modal-btn-primary" data-action="sync-now">Đồng bộ ngay</button>'
+    + '</div>';
+}
+
+function closeAccountPanel() { document.getElementById('account-overlay').style.display = 'none'; }
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest ? ev.target.closest('[data-action]') : null;
+  if (!t) return;
+  const a = t.dataset.action;
+  if (a === 'account-btn-click') {
+    if (!sync.user) signInGoogle();
+    else { renderAccountPanel(); document.getElementById('account-overlay').style.display = 'flex'; }
+  } else if (a === 'close-account') {
+    closeAccountPanel();
+  } else if (a === 'sign-out') {
+    signOutGoogle();
+  } else if (a === 'sync-now') {
+    syncNow('manual');
+  } else if (a === 'conflict-remote') { resolveConflict('remote');
+  } else if (a === 'conflict-local') { resolveConflict('local');
+  } else if (a === 'conflict-later') { resolveConflict('later'); }
+});
+
+window.__ielts.onChange = () => { if (sync.user) scheduleSync(2000); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && sync.user) scheduleSync(400); });
+window.addEventListener('online', () => { if (sync.user) scheduleSync(400); });
+
+renderAccountBtn();
+if (location.protocol !== 'file:' && syncConfigured()) {
+  ensureFirebase().catch((e) => { console.error(e); setSyncStatus('signedout'); });
+}
 
 renderAll();
 </script>
