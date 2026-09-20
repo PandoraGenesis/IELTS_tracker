@@ -15,6 +15,12 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // Chỉ cache các file tĩnh của web (cùng tên miền) và phương thức GET
+  // Bỏ qua các kết nối API, Firebase, Firestore để không gây lỗi đồng bộ
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
