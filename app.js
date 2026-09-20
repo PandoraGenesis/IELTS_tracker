@@ -1708,38 +1708,36 @@ const SKILLS = [
       const base = { x: 0 };
       crits.forEach((c) => { base[c] = SKILLS[2].baseline; });
       const data = [base];
-      const allPoints = [];
-      let seq = 0;
-      WRITING_TASKS.forEach((tk) => {
-        getWritingEntries(tk.key).forEach((record) => {
-          const point = {};
-          let hasAny = false;
+
+      WRITING_TASKS.forEach((tk, idx) => {
+        const entries = getWritingEntries(tk.key);
+        const sums = {};
+        const counts = {};
+        crits.forEach((c) => { sums[c] = 0; counts[c] = 0; });
+        
+        entries.forEach((record) => {
           crits.forEach((c) => {
             const v = record['writing' + c];
-            if (v !== undefined && v !== null && v !== '') { point[c] = parseFloat(v); hasAny = true; }
+            if (v !== undefined && v !== null && v !== '') {
+              sums[c] += parseFloat(v);
+              counts[c]++;
+            }
           });
-          if (hasAny) {
-            point._iso = ddmmyyyyToIso(record.date);
-            point._seq = seq++;
-            allPoints.push(point);
+        });
+        
+        const point = { x: idx + 1 };
+        let hasAny = false;
+        crits.forEach((c) => {
+          if (counts[c] > 0) {
+            point[c] = Math.round((sums[c] / counts[c]) * 2) / 2;
+            hasAny = true;
           }
         });
-      });
-      allPoints.sort((a, b) => {
-        if (a._iso !== b._iso) {
-          if (!a._iso) return -1;
-          if (!b._iso) return 1;
-          return a._iso.localeCompare(b._iso);
+        if (hasAny) {
+          data.push(point);
+        } else {
+          data.push({ x: idx + 1 });
         }
-        return a._seq - b._seq;
-      });
-      let x = 0;
-      allPoints.forEach((p) => {
-        x += 1;
-        p.x = x;
-        delete p._iso;
-        delete p._seq;
-        data.push(p);
       });
       return data;
     }
@@ -1749,38 +1747,36 @@ const SKILLS = [
       const base = { x: 0 };
       crits.forEach((c) => { base[c] = SKILLS[3].baseline; });
       const data = [base];
-      const allPoints = [];
-      let seq = 0;
-      SPEAKING_PARTS.forEach((pk) => {
-        getSpeakingEntries(pk.key).forEach((record) => {
-          const point = {};
-          let hasAny = false;
+
+      SPEAKING_PARTS.forEach((pk, idx) => {
+        const entries = getSpeakingEntries(pk.key);
+        const sums = {};
+        const counts = {};
+        crits.forEach((c) => { sums[c] = 0; counts[c] = 0; });
+        
+        entries.forEach((record) => {
           crits.forEach((c) => {
             const v = record['speaking' + c];
-            if (v !== undefined && v !== null && v !== '') { point[c] = parseFloat(v); hasAny = true; }
+            if (v !== undefined && v !== null && v !== '') {
+              sums[c] += parseFloat(v);
+              counts[c]++;
+            }
           });
-          if (hasAny) {
-            point._iso = ddmmyyyyToIso(record.date);
-            point._seq = seq++;
-            allPoints.push(point);
+        });
+        
+        const point = { x: idx + 1 };
+        let hasAny = false;
+        crits.forEach((c) => {
+          if (counts[c] > 0) {
+            point[c] = Math.round((sums[c] / counts[c]) * 2) / 2;
+            hasAny = true;
           }
         });
-      });
-      allPoints.sort((a, b) => {
-        if (a._iso !== b._iso) {
-          if (!a._iso) return -1;
-          if (!b._iso) return 1;
-          return a._iso.localeCompare(b._iso);
+        if (hasAny) {
+          data.push(point);
+        } else {
+          data.push({ x: idx + 1 });
         }
-        return a._seq - b._seq;
-      });
-      let x = 0;
-      allPoints.forEach((p) => {
-        x += 1;
-        p.x = x;
-        delete p._iso;
-        delete p._seq;
-        data.push(p);
       });
       return data;
     }
