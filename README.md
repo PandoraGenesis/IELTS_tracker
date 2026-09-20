@@ -1,9 +1,9 @@
 <div align="center">
 
-# IELTS_tracker
+# IELTS TRACKER
 
-**A customizable 28-day IELTS study logbook and progress tracker — fork it and make it your own.**  
-*Nhật ký theo dõi tiến độ luyện IELTS trong 28 ngày, ai cũng có thể tùy chỉnh theo lộ trình của riêng mình.*
+**A customizable IELTS study logbook and progress tracker — fork it and make it your own.**  
+*Nhật ký theo dõi tiến độ luyện IELTS, ai cũng có thể tùy chỉnh theo lộ trình của riêng mình.*
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
