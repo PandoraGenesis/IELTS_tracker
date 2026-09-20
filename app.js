@@ -3285,7 +3285,7 @@ const SKILLS = [
       // Ép dùng long-polling thay vì kênh streaming (WebChannel) mặc định —
       // kênh streaming hay bị mạng/ISP/tường lửa reset liên tục, gây lỗi
       // "client is offline" dù các request HTTPS thường vẫn hoạt động tốt.
-      sync.db.settings({ experimentalForceLongPolling: true, merge: true });
+      sync.db.settings({ experimentalForceLongPolling: true, useFetchStreams: false, merge: true });
       sync.ready = true;
       sync.auth.onAuthStateChanged(onAuthChanged);
     }
