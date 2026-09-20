@@ -124,10 +124,19 @@ const SKILLS = [
         + '<input type="number" step="0.5" min="0" max="9" placeholder="—" value="' + (bandVal !== undefined && bandVal !== null ? bandVal : '') + '" data-kind="' + kindPrefix + 'band" data-field="' + s.key + '" ' + extraAttrs + ' /></div>';
     }
 
-    function noteFieldHtml(value, kindName, extraAttrs, placeholderText) {
+    function noteFieldHtml(value, kindName, extraAttrs, placeholderText, isCollapsible) {
+      var innerHtml = '<div class="note-editable" contenteditable="true" data-placeholder="' + placeholderText + '" data-kind="' + kindName + '" ' + extraAttrs + '>' + (value || '') + '</div>';
+      if (isCollapsible) {
+        return '<details class="note-field-details" style="margin-top:12px;">'
+          + '<summary style="font-size: 12px; font-weight: 600; color: var(--ink-muted); cursor: pointer; user-select: none; text-transform: uppercase; letter-spacing: 0.5px;">Ghi chú</summary>'
+          + '<div class="note-field" style="margin-top: 8px;">'
+          + innerHtml
+          + '</div>'
+          + '</details>';
+      }
       return '<div class="note-field">'
         + '<label>Ghi chú</label>'
-        + '<div class="note-editable" contenteditable="true" data-placeholder="' + placeholderText + '" data-kind="' + kindName + '" ' + extraAttrs + '>' + (value || '') + '</div>'
+        + innerHtml
         + '</div>';
     }
 
@@ -1175,7 +1184,7 @@ const SKILLS = [
           + dateFieldHtml(record.date, kindPrefix, dataAttr)
           + '</div>'
           + '<div class="band-grid-crit">' + bandField + '</div>'
-          + noteFieldHtml(record.note || '', kindPrefix + 'note', dataAttr, 'Ghi chú cho ' + placeholderLabel + '…')
+          + noteFieldHtml(record.note || '', kindPrefix + 'note', dataAttr, 'Ghi chú cho ' + placeholderLabel + '…', true)
           + '</div>';
       }).join('');
       document.getElementById('writing-tests').innerHTML = html;
