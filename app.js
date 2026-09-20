@@ -1,4 +1,4 @@
-// Theo dõi mọi thay đổi dữ liệu (localStorage) để tự đồng bộ khi đã đăng nhập.
+﻿// Theo dõi mọi thay đổi dữ liệu (localStorage) để tự đồng bộ khi đã đăng nhập.
     // Phải chạy trước code của app.
     (function () {
       var hook = window.__ielts = { applying: false, onChange: null };
@@ -517,7 +517,7 @@ const SKILLS = [
           + dateFieldHtml(test.date, 'vol-', attrs + ' data-test="' + idx + '"')
           + '</div>'
           + '<div class="band-grid">' + bandFields + '</div>'
-          + noteFieldHtml(test.note || '', 'vol-note', attrs + ' data-test="' + idx + '"', 'Ghi chú cho bài test này…')
+          + noteFieldHtml(test.note || '', 'vol-note', attrs + ' data-test="' + idx + '"', 'Ghi chú cho bài test này…', true)
           + '</div>';
       }).join('');
       document.getElementById('vol-tests').innerHTML = html;
@@ -632,7 +632,7 @@ const SKILLS = [
           + dateFieldHtml(test.date, 'cam-', 'data-cam="' + activeCam + '" data-test="' + idx + '"')
           + '</div>'
           + '<div class="band-grid">' + bandFields + '</div>'
-          + noteFieldHtml(test.note || '', 'cam-note', 'data-cam="' + activeCam + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…')
+          + noteFieldHtml(test.note || '', 'cam-note', 'data-cam="' + activeCam + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…', true)
           + '</div>';
       }).join('');
       document.getElementById('cam-tests').innerHTML = html;
@@ -744,7 +744,7 @@ const SKILLS = [
           + dateFieldHtml(test.date, 'actual-', 'data-actual="' + activeActual + '" data-test="' + idx + '"')
           + '</div>'
           + '<div class="band-grid-lr">' + bandFields + '</div>'
-          + noteFieldHtml(test.note || '', 'actual-note', 'data-actual="' + activeActual + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…')
+          + noteFieldHtml(test.note || '', 'actual-note', 'data-actual="' + activeActual + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…', true)
           + '</div>';
       }).join('');
       document.getElementById('actual-tests').innerHTML = html;
@@ -855,7 +855,7 @@ const SKILLS = [
           + dateFieldHtml(test.date, 'mock-', 'data-mock="' + activeMock + '" data-test="' + idx + '"')
           + '</div>'
           + '<div class="band-grid-lr">' + bandFields + '</div>'
-          + noteFieldHtml(test.note || '', 'mock-note', 'data-mock="' + activeMock + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…')
+          + noteFieldHtml(test.note || '', 'mock-note', 'data-mock="' + activeMock + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…', true)
           + '</div>';
       }).join('');
       document.getElementById('mock-tests').innerHTML = html;
@@ -966,7 +966,7 @@ const SKILLS = [
           + dateFieldHtml(test.date, 'practicec-', 'data-practicec="' + activePracticeC + '" data-test="' + idx + '"')
           + '</div>'
           + '<div class="band-grid-lr">' + bandFields + '</div>'
-          + noteFieldHtml(test.note || '', 'practicec-note', 'data-practicec="' + activePracticeC + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…')
+          + noteFieldHtml(test.note || '', 'practicec-note', 'data-practicec="' + activePracticeC + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…', true)
           + '</div>';
       }).join('');
       document.getElementById('practicec-tests').innerHTML = html;
@@ -1077,7 +1077,7 @@ const SKILLS = [
           + dateFieldHtml(test.date, 'simtest-', 'data-simtest="' + activeSimTest + '" data-test="' + idx + '"')
           + '</div>'
           + '<div class="band-grid-lr">' + bandFields + '</div>'
-          + noteFieldHtml(test.note || '', 'simtest-note', 'data-simtest="' + activeSimTest + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…')
+          + noteFieldHtml(test.note || '', 'simtest-note', 'data-simtest="' + activeSimTest + '" data-test="' + idx + '"', 'Ghi chú cho bài test này…', true)
           + '</div>';
       }).join('');
       document.getElementById('simtest-tests').innerHTML = html;
@@ -1259,7 +1259,7 @@ const SKILLS = [
           + dateFieldHtml(record.date, kindPrefix, dataAttr)
           + '</div>'
           + '<div class="band-grid-crit">' + bandField + '</div>'
-          + noteFieldHtml(record.note || '', kindPrefix + 'note', dataAttr, 'Ghi chú cho ' + placeholderLabel + '…')
+          + noteFieldHtml(record.note || '', kindPrefix + 'note', dataAttr, 'Ghi chú cho ' + placeholderLabel + '…', true)
           + '</div>';
       }).join('');
       document.getElementById('speaking-tests').innerHTML = html;
@@ -2209,7 +2209,7 @@ const SKILLS = [
           + '</div>'
           + '<label class="done-toggle"><input type="checkbox" ' + (done ? 'checked' : '') + ' data-day="' + d.day + '" data-kind="toggle" /> Đã học xong</label>'
           + '<div class="band-grid">' + bandFields + '</div>'
-          + noteFieldHtml(e.note || '', 'note', 'data-day="' + d.day + '"', 'Ghi chú cho ngày này…')
+          + noteFieldHtml(e.note || '', 'note', 'data-day="' + d.day + '"', 'Ghi chú cho ngày này…', true)
           + '</div></div>';
       }).join('');
       document.getElementById('day-list').innerHTML = html;
