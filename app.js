@@ -1,4 +1,4 @@
-﻿// Theo dõi mọi thay đổi dữ liệu (localStorage) để tự đồng bộ khi đã đăng nhập.
+// Theo dõi mọi thay đổi dữ liệu (localStorage) để tự đồng bộ khi đã đăng nhập.
     // Phải chạy trước code của app.
     (function () {
       var hook = window.__ielts = { applying: false, onChange: null };
@@ -1708,7 +1708,8 @@ const SKILLS = [
       const base = { x: 0 };
       crits.forEach((c) => { base[c] = SKILLS[2].baseline; });
       const data = [base];
-      let x = 0;
+      const allPoints = [];
+      let seq = 0;
       WRITING_TASKS.forEach((tk) => {
         getWritingEntries(tk.key).forEach((record) => {
           const point = {};
@@ -1717,8 +1718,28 @@ const SKILLS = [
             const v = record['writing' + c];
             if (v !== undefined && v !== null && v !== '') { point[c] = parseFloat(v); hasAny = true; }
           });
-          if (hasAny) { x += 1; point.x = x; data.push(point); }
+          if (hasAny) {
+            point._iso = ddmmyyyyToIso(record.date);
+            point._seq = seq++;
+            allPoints.push(point);
+          }
         });
+      });
+      allPoints.sort((a, b) => {
+        if (a._iso !== b._iso) {
+          if (!a._iso) return -1;
+          if (!b._iso) return 1;
+          return a._iso.localeCompare(b._iso);
+        }
+        return a._seq - b._seq;
+      });
+      let x = 0;
+      allPoints.forEach((p) => {
+        x += 1;
+        p.x = x;
+        delete p._iso;
+        delete p._seq;
+        data.push(p);
       });
       return data;
     }
@@ -1728,7 +1749,8 @@ const SKILLS = [
       const base = { x: 0 };
       crits.forEach((c) => { base[c] = SKILLS[3].baseline; });
       const data = [base];
-      let x = 0;
+      const allPoints = [];
+      let seq = 0;
       SPEAKING_PARTS.forEach((pk) => {
         getSpeakingEntries(pk.key).forEach((record) => {
           const point = {};
@@ -1737,8 +1759,28 @@ const SKILLS = [
             const v = record['speaking' + c];
             if (v !== undefined && v !== null && v !== '') { point[c] = parseFloat(v); hasAny = true; }
           });
-          if (hasAny) { x += 1; point.x = x; data.push(point); }
+          if (hasAny) {
+            point._iso = ddmmyyyyToIso(record.date);
+            point._seq = seq++;
+            allPoints.push(point);
+          }
         });
+      });
+      allPoints.sort((a, b) => {
+        if (a._iso !== b._iso) {
+          if (!a._iso) return -1;
+          if (!b._iso) return 1;
+          return a._iso.localeCompare(b._iso);
+        }
+        return a._seq - b._seq;
+      });
+      let x = 0;
+      allPoints.forEach((p) => {
+        x += 1;
+        p.x = x;
+        delete p._iso;
+        delete p._seq;
+        data.push(p);
       });
       return data;
     }
