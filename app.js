@@ -2296,9 +2296,76 @@ const SKILLS = [
       renderCommentary();
     }
 
+    function renderTopStatsBoard() {
+      let testCount = 0;
+      const checkTest = (t) => {
+        if (countFilledSkills(t) >= 2) testCount++;
+      };
+
+      Object.values(cams).forEach(c => c && c.tests && c.tests.forEach(checkTest));
+      Object.values(vols).forEach(v => {
+        if (v && v.formats) {
+          if (v.formats.paper && v.formats.paper.tests) v.formats.paper.tests.forEach(checkTest);
+          if (v.formats.online && v.formats.online.tests) v.formats.online.tests.forEach(checkTest);
+        }
+      });
+      Object.values(actuals).forEach(a => a && a.tests && a.tests.forEach(checkTest));
+      Object.values(mocks).forEach(m => m && m.tests && m.tests.forEach(checkTest));
+      Object.values(simtests).forEach(s => s && s.tests && s.tests.forEach(checkTest));
+
+      let writingCount = 0;
+      Object.values(writings).forEach(arr => {
+        if (Array.isArray(arr)) {
+          writingCount += arr.filter(r => Object.keys(r).some(k => r[k] !== '' && r[k] !== null)).length;
+        }
+      });
+
+      let speakingCount = 0;
+      Object.values(speakings).forEach(arr => {
+        if (Array.isArray(arr)) {
+          speakingCount += arr.filter(r => Object.keys(r).some(k => r[k] !== '' && r[k] !== null)).length;
+        }
+      });
+
+      const boardHtml = `
+      <div class="stats-board-wrapper" style="margin-bottom: 24px;">
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+          
+          <div class="stat-card" style="display: flex; flex-direction: column; align-items: center; padding: 16px; background: white; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="color: var(--ink-muted); font-weight: 700; font-size: 13px; letter-spacing: 1px; margin-bottom: 12px;">TEST</div>
+            <div style="width: 64px; height: 64px; border-radius: 50%; border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: bold; font-size: 24px;">
+              ${testCount}
+            </div>
+          </div>
+
+          <div class="stat-card" style="display: flex; flex-direction: column; align-items: center; padding: 16px; background: white; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="color: var(--ink-muted); font-weight: 700; font-size: 13px; letter-spacing: 1px; margin-bottom: 12px;">WRITING</div>
+            <div style="width: 64px; height: 64px; border-radius: 50%; border: 4px solid #C13F68; display: flex; align-items: center; justify-content: center; color: #C13F68; font-weight: bold; font-size: 24px;">
+              ${writingCount}
+            </div>
+          </div>
+
+          <div class="stat-card" style="display: flex; flex-direction: column; align-items: center; padding: 16px; background: white; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="color: var(--ink-muted); font-weight: 700; font-size: 13px; letter-spacing: 1px; margin-bottom: 12px;">SPEAKING</div>
+            <div style="width: 64px; height: 64px; border-radius: 50%; border: 4px solid #6B54CC; display: flex; align-items: center; justify-content: center; color: #6B54CC; font-weight: bold; font-size: 24px;">
+              ${speakingCount}
+            </div>
+          </div>
+
+        </div>
+      </div>
+      `;
+
+      const container = document.getElementById('top-stats-board');
+      if (container) {
+        container.innerHTML = boardHtml;
+      }
+    }
+
     function renderAll() {
       renderHeader();
       renderStats();
+      renderTopStatsBoard();
       renderCategoryAverages();
       renderCharts();
       renderLegend();
