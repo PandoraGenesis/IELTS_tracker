@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ielts-tracker-cache-v1';
+const CACHE_NAME = 'ielts-tracker-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -8,10 +8,29 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  // Bắt buộc Service Worker mới kích hoạt ngay lập tức (bỏ qua trạng thái waiting)
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
   );
+});
+
+// Xoá bộ nhớ đệm cũ khi có phiên bản Service Worker mới
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  // Yêu cầu các trang đang mở sử dụng ngay Service Worker mới
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', event => {
