@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ielts-tracker-cache-v2';
+const CACHE_NAME = 'ielts-tracker-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
