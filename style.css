@@ -176,55 +176,6 @@
       min-width: 0;
     }
 
-    .commentary-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .commentary-cell {
-      padding: 0 16px 16px;
-      min-width: 0;
-    }
-
-    .commentary-cell:nth-child(4n+1) {
-      padding-left: 0;
-    }
-
-    .commentary-cell:nth-child(4n) {
-      padding-right: 0;
-    }
-
-    .commentary-cell:not(:nth-child(4n)) {
-      border-right: 1px solid var(--border);
-    }
-
-    .commentary-cell:nth-child(-n+4) {
-      border-bottom: 1px solid var(--border);
-    }
-
-    .commentary-cell:nth-child(n+5) {
-      padding-top: 16px;
-    }
-
-    @media(max-width:640px) {
-      .commentary-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .commentary-cell {
-        border-right: none !important;
-        padding: 16px 0;
-      }
-
-      .commentary-cell:first-child {
-        padding-top: 0;
-      }
-
-      .commentary-cell:not(:last-child) {
-        border-bottom: 1px solid var(--border);
-      }
-    }
-
     .legend {
       display: flex;
       flex-wrap: wrap;

@@ -1781,40 +1781,6 @@ const SKILLS = [
       return data;
     }
 
-    function critRemark(critKey, categoryKind) {
-      const dataFn = categoryKind === 'writing' ? writingChartData : speakingChartData;
-      const data = dataFn();
-      const filtered = data.filter((d) => d[critKey] !== undefined);
-      if (filtered.length <= 1) return 'Chưa có đủ dữ liệu để nhận xét xu hướng.';
-
-      const values = filtered.map((d) => d[critKey]);
-      const first = values[0];
-      const last = values[values.length - 1];
-      const overallDelta = Math.round((last - first) * 10) / 10;
-
-      let increases = 0, decreases = 0;
-      for (let i = 1; i < values.length; i++) {
-        const diff = Math.round((values[i] - values[i - 1]) * 100) / 100;
-        if (diff > 0) increases++;
-        else if (diff < 0) decreases++;
-      }
-
-      let trendText;
-      if (increases > 0 && decreases === 0) {
-        trendText = 'tăng đều qua các lần đo (' + first.toFixed(1) + ' → ' + last.toFixed(1) + ')';
-      } else if (decreases > 0 && increases === 0) {
-        trendText = 'giảm dần qua các lần đo (' + first.toFixed(1) + ' → ' + last.toFixed(1) + '), cần xem lại phương pháp ôn tập';
-      } else if (increases > 0 && decreases > 0) {
-        trendText = overallDelta >= 0
-          ? 'dao động lên xuống nhưng nhìn chung vẫn nhích lên (' + first.toFixed(1) + ' → ' + last.toFixed(1) + ')'
-          : 'dao động lên xuống và đang nghiêng về xu hướng giảm (' + first.toFixed(1) + ' → ' + last.toFixed(1) + '), cần ổn định lại phong độ';
-      } else {
-        trendText = 'chưa có biến động, vẫn đứng yên ở mức ' + last.toFixed(1);
-      }
-
-      return trendText + '.';
-    }
-
     function ticksFor(max) {
       if (max <= 0) return [0];
       const step = max <= 6 ? 1 : Math.ceil(max / 4);
@@ -2047,78 +2013,6 @@ const SKILLS = [
         + '</div>';
     }
 
-    function skillRemark(skillKey, categoryKey) {
-      const DATA_FNS = { cam: camChartData, vol: volChartData, actual: actualChartData, mock: mockChartData, practicec: practicecChartData, simtest: simtestChartData, week: weekChartData };
-      const data = (DATA_FNS[categoryKey] || weekChartData)();
-      const filtered = data.filter((d) => d[skillKey] !== undefined);
-      const skill = SKILLS.find((s) => s.key === skillKey);
-      if (filtered.length <= 1) return 'Chưa có đủ dữ liệu để nhận xét xu hướng.';
-
-      const values = filtered.map((d) => d[skillKey]);
-      const first = values[0];
-      const last = values[values.length - 1];
-      const overallDelta = Math.round((last - first) * 10) / 10;
-
-      let increases = 0, decreases = 0;
-      for (let i = 1; i < values.length; i++) {
-        const diff = Math.round((values[i] - values[i - 1]) * 100) / 100;
-        if (diff > 0) increases++;
-        else if (diff < 0) decreases++;
-      }
-
-      let trendText;
-      if (increases > 0 && decreases === 0) {
-        trendText = 'tăng đều qua các lần đo (' + first.toFixed(1) + ' → ' + last.toFixed(1) + ')';
-      } else if (decreases > 0 && increases === 0) {
-        trendText = 'giảm dần qua các lần đo (' + first.toFixed(1) + ' → ' + last.toFixed(1) + '), cần xem lại phương pháp ôn tập';
-      } else if (increases > 0 && decreases > 0) {
-        trendText = overallDelta >= 0
-          ? 'dao động lên xuống nhưng nhìn chung vẫn nhích lên (' + first.toFixed(1) + ' → ' + last.toFixed(1) + ')'
-          : 'dao động lên xuống và đang nghiêng về xu hướng giảm (' + first.toFixed(1) + ' → ' + last.toFixed(1) + '), cần ổn định lại phong độ';
-      } else {
-        trendText = 'chưa có biến động, vẫn đứng yên ở mức ' + last.toFixed(1);
-      }
-
-      const gap = Math.round((skill.target - last) * 10) / 10;
-      const gapText = gap <= 0 ? 'đã đạt mục tiêu'
-        : gap <= 0.5 ? 'rất gần mục tiêu (còn ' + gap.toFixed(1) + ')'
-          : gap <= 1.5 ? 'còn cách mục tiêu ' + gap.toFixed(1)
-            : 'còn cách mục tiêu khá xa (' + gap.toFixed(1) + ')';
-
-      return trendText + ' · ' + gapText + '.';
-    }
-
-    function renderCommentary() {
-      const cols = CATEGORY_LIST.map((cat) => {
-        let lines;
-        if (cat.criteria) {
-          const meta = cat.criteria === 'writing' ? writingCritMeta() : speakingCritMeta();
-          lines = meta.map((cr) =>
-            '<div style="margin-bottom:8px; font-size:12px; line-height:1.5;">'
-            + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + cr.color + ';margin-right:6px;"></span>'
-            + '<span style="font-weight:600; color:var(--ink);">' + cr.label + ':</span> '
-            + '<span style="color:var(--ink-muted);">' + critRemark(cr.key, cat.criteria) + '</span>'
-            + '</div>'
-          ).join('');
-        } else {
-          const skillSet = cat.lrOnly ? LR_SKILLS : SKILLS;
-          lines = skillSet.map((s) =>
-            '<div style="margin-bottom:8px; font-size:12px; line-height:1.5;">'
-            + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + s.color + ';margin-right:6px;"></span>'
-            + '<span style="font-weight:600; color:var(--ink);">' + s.label + ':</span> '
-            + '<span style="color:var(--ink-muted);">' + skillRemark(s.key, cat.key) + '</span>'
-            + '</div>'
-          ).join('');
-        }
-        return '<div class="commentary-cell">'
-          + '<div style="font-size:12px; font-weight:600; margin-bottom:8px; color:var(--ink);">' + cat.label + '</div>'
-          + lines + '</div>';
-      }).join('');
-      document.getElementById('chart-commentary').innerHTML =
-        '<div class="section-label" style="margin-bottom:12px;">Nhận xét</div>'
-        + '<div class="commentary-grid">' + cols + '</div>';
-    }
-
     function renderLegend() {
       const skillItems = SKILLS.map((s, i) =>
         '<span class="legend-item" style="grid-row:1; grid-column:' + (i + 1) + ';"><span class="legend-dot" style="background:' + s.color + '"></span>' + s.label + '</span>'
@@ -2293,7 +2187,6 @@ const SKILLS = [
         + (c.showLegend ? miniLegendHtml(c.seriesMeta) : '')
         + '</div>'
       ).join('');
-      renderCommentary();
     }
 
     function renderTopStatsBoard() {
