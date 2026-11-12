@@ -42,11 +42,15 @@ const SKILLS = [
       try { localStorage.setItem(SKILLS_STORAGE_KEY, JSON.stringify(SKILLS.map((s) => ({ baseline: s.baseline, target: s.target })))); } catch (e) { console.error(e); }
     }
 
+    /* Writing/Speaking: điểm thành phần làm tròn xuống 0.5 (5.85 -> 5.5). Overall 4 kỹ năng làm tròn lên 0.5 (5.85 -> 6.0). */
+    function floorHalf(x) { return Math.floor(x * 2 + 1e-9) / 2; }
+    function ceilHalf(x) { return Math.ceil(x * 2 - 1e-9) / 2; }
+
     function overallBaseline() {
-      return Math.round((SKILLS.reduce((a, s) => a + s.baseline, 0) / SKILLS.length) * 2) / 2;
+      return ceilHalf(SKILLS.reduce((a, s) => a + s.baseline, 0) / SKILLS.length);
     }
     function overallTarget() {
-      return Math.round((SKILLS.reduce((a, s) => a + s.target, 0) / SKILLS.length) * 2) / 2;
+      return ceilHalf(SKILLS.reduce((a, s) => a + s.target, 0) / SKILLS.length);
     }
 
     const RAW_SCORE_SKILLS = ['listening', 'reading'];
@@ -67,7 +71,7 @@ const SKILLS = [
         .filter((v) => !isNaN(v));
       if (vals.length === 0) return null;
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      return Math.round(mean * 2) / 2;
+      return floorHalf(mean);
     }
 
     const LISTENING_TABLE = [
@@ -468,7 +472,7 @@ const SKILLS = [
       let overall = null;
       if (validAvgs.length > 0) {
         const mean = validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length;
-        overall = Math.round(mean * 2) / 2;
+        overall = ceilHalf(mean);
       }
       return { avgs, overall };
     }
@@ -596,7 +600,7 @@ const SKILLS = [
       let overall = null;
       if (validAvgs.length > 0) {
         const mean = validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length;
-        overall = Math.round(mean * 2) / 2;
+        overall = ceilHalf(mean);
       }
       return { avgs, overall };
     }
@@ -708,7 +712,7 @@ const SKILLS = [
       let overall = null;
       if (validAvgs.length > 0) {
         const mean = validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length;
-        overall = Math.round(mean * 2) / 2;
+        overall = ceilHalf(mean);
       }
       return { avgs, overall };
     }
@@ -819,7 +823,7 @@ const SKILLS = [
       let overall = null;
       if (validAvgs.length > 0) {
         const mean = validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length;
-        overall = Math.round(mean * 2) / 2;
+        overall = ceilHalf(mean);
       }
       return { avgs, overall };
     }
@@ -930,7 +934,7 @@ const SKILLS = [
       let overall = null;
       if (validAvgs.length > 0) {
         const mean = validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length;
-        overall = Math.round(mean * 2) / 2;
+        overall = ceilHalf(mean);
       }
       return { avgs, overall };
     }
@@ -1041,7 +1045,7 @@ const SKILLS = [
       let overall = null;
       if (validAvgs.length > 0) {
         const mean = validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length;
-        overall = Math.round(mean * 2) / 2;
+        overall = ceilHalf(mean);
       }
       return { avgs, overall };
     }
@@ -1666,7 +1670,7 @@ const SKILLS = [
       const vals = crits.map((c) => avgs[c]).filter((v) => v !== null && v !== undefined);
       if (vals.length === 0) return null;
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      return Math.round(mean * 2) / 2;
+      return floorHalf(mean);
     }
 
     function writingCriteriaAverages() {
