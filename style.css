@@ -547,6 +547,7 @@
       color: #fff;
     }
 
+    #writing-tests,
     #speaking-tests {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -554,7 +555,13 @@
       align-items: start;
     }
 
+    /* Writing: khi mở Ghi chú, ô đó chiếm cả hàng (grid 1), các ô khác giữ grid 2. Speaking luôn grid 2. */
+    #writing-tests > .day-card:has(details[open]) {
+      grid-column: 1 / -1;
+    }
+
     @media(max-width:640px) {
+      #writing-tests,
       #speaking-tests {
         grid-template-columns: 1fr;
       }
