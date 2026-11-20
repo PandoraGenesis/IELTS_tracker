@@ -560,10 +560,27 @@
       grid-column: 1 / -1;
     }
 
+    /* Điện thoại: vẫn giữ 2 cột, 4 ô điểm trong mỗi ô lớn xếp 2x2 cho vừa */
     @media(max-width:640px) {
       #writing-tests,
       #speaking-tests {
-        grid-template-columns: 1fr;
+        column-gap: 8px;
+      }
+
+      #writing-tests .day-card,
+      #speaking-tests .day-card {
+        padding: 12px;
+      }
+
+      #writing-tests .band-grid-crit .sub-score-grid,
+      #speaking-tests .band-grid-crit .sub-score-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      /* Writing đang mở Ghi chú (full hàng): trả 4 ô điểm về một hàng */
+      #writing-tests > .day-card:has(details[open]) .band-grid-crit .sub-score-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
 

@@ -3603,4 +3603,91 @@ const SKILLS = [
       ensureFirebase().catch((e) => { console.error(e); setSyncStatus('signedout'); });
     }
 
+    /* Writing: hiệu ứng lướt kèm giãn mượt khi mở/đóng Ghi chú (FLIP bằng Web Animations API) */
+    (function () {
+      const wrap = document.getElementById('writing-tests');
+      if (!wrap) return;
+      const DUR = 420;
+      const EASE = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+      wrap.addEventListener('click', (ev) => {
+        const summary = ev.target.closest && ev.target.closest('summary');
+        if (!summary || !wrap.contains(summary)) return;
+        const details = summary.parentElement;
+        if (!details || details.tagName !== 'DETAILS') return;
+        ev.preventDefault();
+        const card = details.closest('.day-card');
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce || !wrap.animate || !card) { details.open = !details.open; return; }
+
+        wrap.getAnimations({ subtree: true }).forEach((an) => an.finish());
+        const cards = Array.prototype.slice.call(wrap.querySelectorAll(':scope > .day-card'));
+        const first = cards.map((c) => c.getBoundingClientRect());
+        const wrapFirst = wrap.getBoundingClientRect();
+        const wasOpen = details.open;
+        const noteEl = details.querySelector('.note-field');
+        const cardIdx = cards.indexOf(card);
+
+        const madeRelative = getComputedStyle(card).position === 'static';
+        if (madeRelative) card.style.position = 'relative';
+
+        let ghost = null;
+        if (wasOpen && noteEl) {
+          const nr = noteEl.getBoundingClientRect();
+          ghost = noteEl.cloneNode(true);
+          ghost.style.cssText = 'position:absolute; margin:0; pointer-events:none; top:' + (nr.top - first[cardIdx].top) + 'px; left:' + (nr.left - first[cardIdx].left) + 'px; width:' + nr.width + 'px;';
+          Array.prototype.forEach.call(ghost.querySelectorAll('[contenteditable]'), (e) => e.removeAttribute('contenteditable'));
+        }
+
+        details.open = !wasOpen;
+        const last = cards.map((c) => c.getBoundingClientRect());
+        const wrapLast = wrap.getBoundingClientRect();
+        const opts = { duration: DUR, easing: EASE };
+        const running = [];
+
+        cards.forEach((c, i) => {
+          const dx = first[i].left - last[i].left;
+          const dy = first[i].top - last[i].top;
+          if (i === cardIdx) {
+            c.style.overflow = 'hidden';
+            c.style.boxSizing = 'border-box';
+            c.style.zIndex = '2';
+            running.push(c.animate([
+              { transform: 'translate(' + dx + 'px,' + dy + 'px)', width: first[i].width + 'px', height: first[i].height + 'px' },
+              { transform: 'none', width: last[i].width + 'px', height: last[i].height + 'px' },
+            ], opts));
+          } else if (dx || dy) {
+            running.push(c.animate([
+              { transform: 'translate(' + dx + 'px,' + dy + 'px)' },
+              { transform: 'none' },
+            ], opts));
+          }
+        });
+
+        if (Math.abs(wrapFirst.height - wrapLast.height) > 0.5) {
+          running.push(wrap.animate([
+            { height: wrapFirst.height + 'px', alignContent: 'start' },
+            { height: wrapLast.height + 'px', alignContent: 'start' },
+          ], opts));
+        }
+
+        if (ghost) {
+          card.appendChild(ghost);
+          running.push(ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: DUR * 0.5, easing: 'ease-out', fill: 'forwards' }));
+        } else if (noteEl) {
+          noteEl.animate([
+            { opacity: 0, transform: 'translateY(-6px)' },
+            { opacity: 1, transform: 'none' },
+          ], { duration: DUR * 0.7, delay: DUR * 0.2, easing: EASE, fill: 'backwards' });
+        }
+
+        Promise.all(running.map((an) => an.finished.catch(() => {}))).then(() => {
+          if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+          if (madeRelative) card.style.position = '';
+          card.style.overflow = '';
+          card.style.boxSizing = '';
+          card.style.zIndex = '';
+        });
+      });
+    })();
+
     renderAll();
